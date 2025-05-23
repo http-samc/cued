@@ -7,7 +7,7 @@ import { account } from "@cued/db/schema";
 
 export const getResolvedTrackData = async (track: TrackItem) => {
   return {
-    preferredStart: 750,
+    preferredStart: 20000,
     preferredEnd: track.duration_ms,
   };
 };

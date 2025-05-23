@@ -12,7 +12,7 @@ const Home = () => {
     <main className="flex min-h-screen flex-col items-center justify-center">
       {data?.user ? (
         <div>
-          <p>Welcome {data.user.email}.</p>
+          <p>Welcome {data.user.id}.</p>
           <button onClick={() => client.signOut()}>Sign out</button>
         </div>
       ) : (
