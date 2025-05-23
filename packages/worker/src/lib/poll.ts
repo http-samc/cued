@@ -1,12 +1,21 @@
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 
-import { env } from "@cued/auth/env";
+import { getResolvedTrackData } from "./helpers";
+import { WorkerConfig } from "./worker";
 
-import { getAccessToken, getResolvedTrackData } from "./helpers";
+interface PollerConfig {
+  sdk: SpotifyApi;
+  userId: WorkerConfig["userId"];
+  pollInterval: WorkerConfig["pollInterval"];
+}
 
 // Underlying polling function
-async function poll(sdk: SpotifyApi, pollInterval: number) {
-  // Get the currently playing track and the queue
+export default async function poll({
+  sdk,
+  userId,
+  pollInterval,
+}: PollerConfig) {
+  // Get the currently playing track
   const data = await sdk.player.getCurrentlyPlayingTrack();
 
   // If we're not playing anything, no further action is needed
@@ -15,12 +24,7 @@ async function poll(sdk: SpotifyApi, pollInterval: number) {
     return;
   }
 
-  const {
-    item: track,
-    currently_playing_type,
-    repeat_state,
-    progress_ms,
-  } = data;
+  const { item: track, currently_playing_type, progress_ms } = data;
 
   // If we're not playing a track, no further action is needed
   if (currently_playing_type !== "track") {
@@ -28,7 +32,7 @@ async function poll(sdk: SpotifyApi, pollInterval: number) {
     return;
   }
 
-  const { preferredEnd } = await getResolvedTrackData(track);
+  const { preferredEnd } = await getResolvedTrackData(userId, track);
 
   console.debug(
     `Current track: ${track.name} (${progress_ms}ms/${preferredEnd}ms)`,
@@ -53,42 +57,14 @@ async function poll(sdk: SpotifyApi, pollInterval: number) {
   console.debug("Next track found:", nextTrack.name);
 
   // Get the next track's data
-  const { preferredStart: nextPreferredStart } =
-    await getResolvedTrackData(nextTrack);
+  const { preferredStart: nextPreferredStart } = await getResolvedTrackData(
+    userId,
+    nextTrack,
+  );
 
   // Play the next track, starting at the appropriate start time
   try {
     await sdk.player.skipToNext(null!);
     await sdk.player.seekToPosition(nextPreferredStart);
-  } catch (error) {} // This errors due to a serialization issue, but it works
-}
-
-interface WorkerConfig {
-  pollInterval: number;
-  runs: number;
-  userId: string;
-}
-
-export default async function worker({
-  pollInterval,
-  runs,
-  userId,
-}: WorkerConfig) {
-  // Get the access token and initialize the SDK for the user
-  const accessToken = await getAccessToken(userId);
-  const sdk = SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, accessToken);
-
-  // Log the user's display name
-  const user = await sdk.currentUser.profile();
-  console.debug(`Initialized worker for user "${user.display_name}".`);
-
-  // Start the polling loop
-  while (runs > 0) {
-    // Wait for min(pollInterval, current poll execution time) before the next poll
-    await Promise.all([
-      poll(sdk, pollInterval),
-      new Promise((resolve) => setTimeout(resolve, pollInterval)),
-    ]);
-    runs--;
-  }
+  } catch (error) {} // This errors due to a Spotify SDK serialization issue, but it works
 }

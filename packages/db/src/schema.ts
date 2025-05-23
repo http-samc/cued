@@ -1,4 +1,11 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -49,3 +56,16 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
 });
+
+export const track = pgTable(
+  "track",
+  {
+    trackId: text("track_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    preferredStart: integer("preferred_start").notNull(),
+    preferredEnd: integer("preferred_end").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.trackId, table.userId] })],
+);

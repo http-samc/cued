@@ -1,18 +1,24 @@
 import { AccessToken, TrackItem } from "@spotify/web-api-ts-sdk";
 import { and, eq } from "drizzle-orm";
 
-import { env } from "@cued/auth/env";
 import { db } from "@cued/db/client";
-import { account } from "@cued/db/schema";
+import { account, track } from "@cued/db/schema";
 
-export const getResolvedTrackData = async (track: TrackItem) => {
+export const getResolvedTrackData = async (
+  userId: string,
+  { id, duration_ms }: TrackItem,
+) => {
+  const internalTrackData = await db.query.track.findFirst({
+    where: and(eq(track.trackId, id), eq(track.userId, userId)),
+  });
+
   return {
-    preferredStart: 20000,
-    preferredEnd: track.duration_ms,
+    preferredStart: internalTrackData?.preferredStart ?? 0,
+    preferredEnd: internalTrackData?.preferredEnd ?? duration_ms,
   };
 };
 
-const refreshAccessToken = async (clientId: string, refreshToken: string) => {
+const _refreshAccessToken = async (clientId: string, refreshToken: string) => {
   const params = new URLSearchParams();
   params.append("client_id", clientId);
   params.append("grant_type", "refresh_token");
