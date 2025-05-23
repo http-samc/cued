@@ -5,7 +5,12 @@ import authClient from "@cued/auth/client";
 export function SpotifyLoginButton() {
   return (
     <button
-      onClick={() => authClient.signIn.social({ provider: "spotify" })}
+      onClick={() =>
+        authClient.signIn.social({
+          provider: "spotify",
+          callbackURL: "/dashboard",
+        })
+      }
       className="flex items-center gap-2 rounded-lg bg-[#1DB954] px-4 py-2 text-white hover:bg-[#1ed760]"
     >
       <svg

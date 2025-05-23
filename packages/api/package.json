@@ -22,6 +22,7 @@
     "@cued/auth": "workspace:*",
     "@cued/db": "workspace:*",
     "@cued/validators": "workspace:*",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
     "@trpc/server": "catalog:",
     "superjson": "2.2.2",
     "zod": "catalog:"

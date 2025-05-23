@@ -14,6 +14,9 @@ const config = {
     "@cued/ui",
     "@cued/validators",
   ],
+  images: {
+    domains: ["i.scdn.co", "**.spotifycdn.com"],
+  },
 
   /** We already do linting and typechecking as separate tasks in CI */
   eslint: { ignoreDuringBuilds: true },
