@@ -12,6 +12,7 @@ export const env = createEnv({
     NODE_ENV: z.enum(["development", "production"]).optional(),
     SPOTIFY_CLIENT_ID: z.string().min(1),
     SPOTIFY_CLIENT_SECRET: z.string().min(1),
+    BETTER_AUTH_URL: z.string().min(1),
   },
   client: {},
   experimental__runtimeEnv: {},

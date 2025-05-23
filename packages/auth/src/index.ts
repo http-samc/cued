@@ -3,6 +3,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { db } from "@cued/db/client";
 
+import { env } from "../env";
+
 interface SpotifyProfile {
   id: string;
   display_name: string;
@@ -16,8 +18,9 @@ export const auth = betterAuth({
   }),
   socialProviders: {
     spotify: {
-      clientId: process.env.SPOTIFY_CLIENT_ID as string,
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET as string,
+      clientId: env.SPOTIFY_CLIENT_ID,
+      clientSecret: env.SPOTIFY_CLIENT_SECRET,
+      redirectUri: "http://127.0.0.1:3000/api/auth/callback/spotify",
     },
   },
 });
