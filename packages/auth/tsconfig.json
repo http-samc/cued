@@ -1,5 +1,9 @@
 {
-  "extends": "@acme/tsconfig/base.json",
+  "extends": "@cued/tsconfig/base.json",
   "include": ["src", "*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  }
 }

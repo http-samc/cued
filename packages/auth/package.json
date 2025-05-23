@@ -1,27 +1,29 @@
 {
-  "name": "@acme/auth",
+  "name": "@cued/auth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": {
-      "react-server": "./src/index.rsc.ts",
       "default": "./src/index.ts"
     },
+    "./client": "./src/client.ts",
     "./env": "./env.ts"
   },
   "license": "MIT",
   "scripts": {
+    "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@acme/db": "workspace:*",
     "@auth/core": "catalog:",
     "@auth/drizzle-adapter": "catalog:",
+    "@cued/db": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.4",
+    "better-auth": "^1.2.8",
     "next": "^15.3.1",
     "next-auth": "catalog:",
     "react": "catalog:react19",
@@ -29,13 +31,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@acme/eslint-config": "workspace:*",
-    "@acme/prettier-config": "workspace:*",
-    "@acme/tsconfig": "workspace:*",
+    "@cued/eslint-config": "workspace:*",
+    "@cued/prettier-config": "workspace:*",
+    "@cued/tsconfig": "workspace:*",
     "@types/react": "catalog:react19",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
   },
-  "prettier": "@acme/prettier-config"
+  "prettier": "@cued/prettier-config"
 }

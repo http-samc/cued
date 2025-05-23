@@ -1,6 +1,6 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 
-import { invalidateSessionToken } from "@acme/auth";
+import { auth } from "@cued/auth";
 
 import { protectedProcedure, publicProcedure } from "../trpc";
 
@@ -15,7 +15,9 @@ export const authRouter = {
     if (!opts.ctx.token) {
       return { success: false };
     }
-    await invalidateSessionToken(opts.ctx.token);
+    // await auth.api.signOut({
+    //   headers: opts.he
+    // });
     return { success: true };
   }),
 } satisfies TRPCRouterRecord;

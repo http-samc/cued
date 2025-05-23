@@ -1,5 +1,5 @@
 {
-  "name": "@acme/db",
+  "name": "@cued/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -33,17 +33,18 @@
     "@vercel/postgres": "^0.10.0",
     "drizzle-orm": "^0.43.1",
     "drizzle-zod": "^0.7.1",
+    "redis": "^5.1.0",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@acme/eslint-config": "workspace:*",
-    "@acme/prettier-config": "workspace:*",
-    "@acme/tsconfig": "workspace:*",
+    "@cued/eslint-config": "workspace:*",
+    "@cued/prettier-config": "workspace:*",
+    "@cued/tsconfig": "workspace:*",
     "dotenv-cli": "^8.0.0",
     "drizzle-kit": "^0.31.0",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
   },
-  "prettier": "@acme/prettier-config"
+  "prettier": "@cued/prettier-config"
 }

@@ -1,15 +1,23 @@
-import NextAuth from "next-auth";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-import { authConfig } from "./config";
+import { db } from "@cued/db/client";
 
-export type { Session } from "next-auth";
+interface SpotifyProfile {
+  id: string;
+  display_name: string;
+  email: string;
+  images?: Array<{ url: string }>;
+}
 
-const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
-
-export { handlers, auth, signIn, signOut };
-
-export {
-  invalidateSessionToken,
-  validateToken,
-  isSecureContext,
-} from "./config";
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+  }),
+  socialProviders: {
+    spotify: {
+      clientId: process.env.SPOTIFY_CLIENT_ID as string,
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET as string,
+    },
+  },
+});
