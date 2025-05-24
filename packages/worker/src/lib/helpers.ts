@@ -9,7 +9,10 @@ export const getResolvedTrackData = async (
   { id, duration_ms }: TrackItem,
 ) => {
   const internalTrackData = await db.query.track.findFirst({
-    where: and(eq(track.trackId, id), eq(track.userId, userId)),
+    where: and(
+      eq(track.trackId, `spotify:track:${id}`),
+      eq(track.userId, userId),
+    ),
   });
 
   return {

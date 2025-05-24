@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { Label, Slider } from "@cued/ui";
+import { Button } from "@cued/ui/button";
+import { toast } from "@cued/ui/toast";
 
+import { useTRPC } from "~/trpc/react";
 import { pauseTrack, playTrack } from "./spotify/helpers";
 import { PlayerControlsComponent } from "./spotify/player-controls";
 import { useSpotifyPlayer } from "./spotify/use-spotify-player";
@@ -37,6 +41,10 @@ const CuePointSelector = ({
   endMs,
   accessToken,
 }: CuePointSelectorProps) => {
+  const trpc = useTRPC();
+  const { mutateAsync: insertTrack } = useMutation(
+    trpc.spotify.insertTrack.mutationOptions(),
+  );
   const { player, deviceId } = useSpotifyPlayer(accessToken);
   const [state, setState] = useState<PlayerState>({
     isPlayerReady: false,
@@ -189,17 +197,6 @@ const CuePointSelector = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Label>Start Time</Label>
-          <div className="text-sm font-medium">{formatTime(state.start)}</div>
-        </div>
-        <div className="space-y-1">
-          <Label>End Time</Label>
-          <div className="text-sm font-medium">{formatTime(state.end)}</div>
-        </div>
-      </div>
-
       <div className="space-y-2">
         <div className="relative">
           <Slider
@@ -224,13 +221,25 @@ const CuePointSelector = ({
           <span>{formatTime(state.duration || endMs)}</span>
         </div>
       </div>
-
       {state.isPlayerReady && (
         <PlayerControlsComponent
           controls={controls}
           isPaused={state.isPaused}
         />
       )}
+      <Button
+        onClick={() => {
+          void insertTrack({
+            trackId: spotifyUri,
+            preferredStart: state.start,
+            preferredEnd: state.end,
+          }).then(() => {
+            toast.success("Track inserted");
+          });
+        }}
+      >
+        Insert Track
+      </Button>
     </div>
   );
 };

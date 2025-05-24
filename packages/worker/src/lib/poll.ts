@@ -62,9 +62,13 @@ export default async function poll({
     nextTrack,
   );
 
-  // Play the next track, starting at the appropriate start time
+  // Play the next track
   try {
     await sdk.player.skipToNext(null!);
+  } catch (error) {} // This errors due to a Spotify SDK serialization issue, but it works
+
+  // Seek to the appropriate start time
+  try {
     await sdk.player.seekToPosition(nextPreferredStart);
   } catch (error) {} // This errors due to a Spotify SDK serialization issue, but it works
 }

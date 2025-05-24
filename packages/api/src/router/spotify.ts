@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import authClient from "@cued/auth/client";
 import { env } from "@cued/auth/env";
-import { eq } from "@cued/db";
-import { account } from "@cued/db/schema";
+import { and, eq } from "@cued/db";
+import { account, track } from "@cued/db/schema";
 
 import { spotify } from "../lib/spotify";
 import { protectedProcedure } from "../trpc";
@@ -75,4 +75,44 @@ export const spotifyRouter = {
 
     return playlists;
   }),
+  insertTrack: protectedProcedure
+    .input(
+      z.object({
+        trackId: z.string(),
+        preferredStart: z.number(),
+        preferredEnd: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Check if the track already exists
+      const existingTrack = await ctx.db.query.track.findFirst({
+        where: and(
+          eq(track.trackId, input.trackId),
+          eq(track.userId, ctx.session.user.id),
+        ),
+      });
+      if (existingTrack) {
+        // Update the track
+        const result = await ctx.db
+          .update(track)
+          .set({
+            preferredStart: input.preferredStart,
+            preferredEnd: input.preferredEnd,
+          })
+          .where(
+            and(
+              eq(track.userId, existingTrack.userId),
+              eq(track.trackId, existingTrack.trackId),
+            ),
+          );
+      } else {
+        // Insert the track
+        const result = await ctx.db.insert(track).values({
+          ...input,
+          userId: ctx.session.user.id,
+        });
+      }
+
+      return { success: true };
+    }),
 } satisfies TRPCRouterRecord;
