@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Label, Slider } from "@cued/ui";
 
-import { playTrack } from "./spotify/helpers";
+import { pauseTrack, playTrack } from "./spotify/helpers";
 import { PlayerControlsComponent } from "./spotify/player-controls";
 import { useSpotifyPlayer } from "./spotify/use-spotify-player";
 
@@ -15,6 +15,20 @@ interface CuePointSelectorProps {
   accessToken: string | null;
 }
 
+interface PlayerState {
+  isPlayerReady: boolean;
+  isPaused: boolean;
+  duration: number;
+  start: number;
+  end: number;
+}
+
+const formatTime = (ms: number) => {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 const CuePointSelector = ({
   spotifyUri,
   startMs,
@@ -22,52 +36,170 @@ const CuePointSelector = ({
   accessToken,
 }: CuePointSelectorProps) => {
   const { player, deviceId } = useSpotifyPlayer(accessToken);
+  const [state, setState] = useState<PlayerState>({
+    isPlayerReady: false,
+    isPaused: true,
+    duration: endMs,
+    start: startMs,
+    end: endMs,
+  });
+  const debounceTimerRef = useRef<NodeJS.Timeout>(null!);
+  const lastValuesRef = useRef<[number, number]>([startMs, endMs]);
+
   useEffect(() => {
     if (accessToken && deviceId) {
       void playTrack(accessToken, deviceId, spotifyUri, startMs);
     }
   }, [accessToken, deviceId, spotifyUri, startMs]);
 
+  useEffect(() => {
+    if (!player) return;
+
+    const handleReady = () => {
+      setState((prev) => ({ ...prev, isPlayerReady: true }));
+    };
+
+    const handleStateChange = (state: Spotify.PlaybackState) => {
+      setState((prev) => ({
+        ...prev,
+        isPaused: state.paused,
+        duration: state.duration,
+      }));
+    };
+
+    player.addListener("ready", handleReady);
+    player.addListener("player_state_changed", handleStateChange);
+
+    return () => {
+      player.removeListener("ready", handleReady);
+      player.removeListener("player_state_changed", handleStateChange);
+    };
+  }, [player]);
+
+  const handlePlayPause = useCallback(async () => {
+    if (!accessToken || !deviceId) return;
+    if (state.isPaused) {
+      await playTrack(accessToken, deviceId, spotifyUri, state.start);
+    } else {
+      await pauseTrack(accessToken, deviceId);
+    }
+  }, [accessToken, deviceId, spotifyUri, state.isPaused, state.start]);
+
+  const handlePreviousTrack = useCallback(() => {
+    player?.previousTrack();
+  }, [player]);
+
+  const handleNextTrack = useCallback(() => {
+    player?.nextTrack();
+  }, [player]);
+
+  const handleSliderChange = useCallback(
+    async (values: [number, number]) => {
+      console.log("Handling slider change");
+      const [newStart, newEnd] = values;
+      const [oldStart, oldEnd] = [state.start, state.end];
+
+      // Determine which thumb was moved
+      const startThumbMoved = newStart !== oldStart;
+      const endThumbMoved = newEnd !== oldEnd;
+
+      // Update state first
+      setState((prev) => ({
+        ...prev,
+        start: newStart,
+        end: newEnd,
+      }));
+
+      // Store the current values
+      lastValuesRef.current = [newStart, newEnd];
+
+      // Clear any existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set new timer
+      debounceTimerRef.current = setTimeout(async () => {
+        // Only proceed if the values haven't changed since we started the timer
+        if (
+          lastValuesRef.current[0] === newStart &&
+          lastValuesRef.current[1] === newEnd
+        ) {
+          console.log("Debounced slider change - values stable");
+          // Handle seeking based on which thumb was moved
+          if (startThumbMoved) {
+            await playTrack(accessToken, deviceId, spotifyUri, newStart);
+          } else if (endThumbMoved) {
+            const seekPosition = Math.max(0, newEnd - 3000);
+            await playTrack(accessToken, deviceId, spotifyUri, seekPosition);
+          }
+        }
+      }, 100);
+    },
+    [
+      player,
+      state.start,
+      state.end,
+      state.isPaused,
+      accessToken,
+      deviceId,
+      spotifyUri,
+    ],
+  );
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const controls = {
+    handlePlayPause,
+    handlePreviousTrack,
+    handleNextTrack,
+    handleSliderChange,
+    formatTime,
+  };
+
   if (!accessToken || !deviceId) return null;
 
   return (
     <div className="space-y-4">
-      {/* <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="space-y-1">
           <Label>Start Time</Label>
-          <div className="text-sm font-medium">
-            {controls.formatTime(state.start)}
-          </div>
+          <div className="text-sm font-medium">{formatTime(state.start)}</div>
         </div>
         <div className="space-y-1">
           <Label>End Time</Label>
-          <div className="text-sm font-medium">
-            {controls.formatTime(state.end)}
-          </div>
+          <div className="text-sm font-medium">{formatTime(state.end)}</div>
         </div>
-      </div> */}
+      </div>
 
       <div className="space-y-2">
         <Slider
-          value={[0, 50000]}
+          value={[state.start, state.end]}
           min={0}
-          max={50000}
+          max={state.duration || endMs}
           step={1000}
-          // onValueChange={controls.handleSliderChange}
+          onValueChange={handleSliderChange}
           className="w-full"
         />
-        {/* <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{controls.formatTime(0)}</span>
-          <span>{controls.formatTime(state.duration || endMs)}</span>
-        </div> */}
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{formatTime(0)}</span>
+          <span>{formatTime(state.duration || endMs)}</span>
+        </div>
       </div>
 
-      {/* {state.isPlayerReady && (
+      {state.isPlayerReady && (
         <PlayerControlsComponent
           controls={controls}
           isPaused={state.isPaused}
         />
-      )} */}
+      )}
     </div>
   );
 };
