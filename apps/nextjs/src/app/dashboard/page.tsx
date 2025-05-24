@@ -20,6 +20,8 @@ import { Label } from "@cued/ui/label";
 
 import { useTRPC } from "~/trpc/react";
 import CuePointSelector from "../components/CuePointSelector";
+import { pauseTrack } from "../components/spotify/helpers";
+import { useSpotifyPlayer } from "../components/spotify/use-spotify-player";
 
 const DashboardPage = () => {
   const trpc = useTRPC();
@@ -27,6 +29,7 @@ const DashboardPage = () => {
   const [debouncedQuery] = useDebounce(query, 500);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const { player, deviceId } = useSpotifyPlayer(accessToken);
 
   const getAccessToken = async () => {
     const { data } = await client.getAccessToken({
@@ -120,7 +123,15 @@ const DashboardPage = () => {
       </div>
       <Dialog
         open={!!selectedTrack}
-        onOpenChange={(open) => !open && setSelectedTrack(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTrack(null);
+            if (player) {
+              // player.pause();
+              pauseTrack(accessToken, deviceId);
+            }
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
