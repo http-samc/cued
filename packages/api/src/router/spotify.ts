@@ -3,6 +3,7 @@ import { SimplifiedPlaylist, SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import authClient from "@cued/auth/client";
 import { env } from "@cued/auth/env";
 import { eq } from "@cued/db";
 import { account } from "@cued/db/schema";
@@ -41,11 +42,24 @@ export const spotifyRouter = {
       });
     }
 
+    let accessToken = spotifyAcccount.accessToken;
+
+    if (
+      spotifyAcccount.accessTokenExpiresAt &&
+      spotifyAcccount.accessTokenExpiresAt.getTime() < Date.now()
+    ) {
+      await authClient.refreshToken({
+        providerId: "spotify",
+        accountId: spotifyAcccount.id,
+      });
+    }
     const spotify = SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
-      access_token: spotifyAcccount.accessToken,
+      access_token: accessToken,
       refresh_token: spotifyAcccount.refreshToken,
       token_type: "Bearer",
-      expires_in: spotifyAcccount.accessTokenExpiresAt!.getTime() - Date.now(),
+      expires: spotifyAcccount.accessTokenExpiresAt!.getTime(),
+      expires_in: null!,
+      // expires_in: spotifyAcccount.accessTokenExpiresAt!.getTime() - Date.now(),
     });
 
     const playlists: SimplifiedPlaylist[] = [];

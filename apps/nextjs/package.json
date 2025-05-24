@@ -30,6 +30,7 @@
     "next": "^15.3.1",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
+    "react-spotify-web-playback": "^0.14.7",
     "superjson": "2.2.2",
     "use-debounce": "^10.0.4",
     "zod": "catalog:"
