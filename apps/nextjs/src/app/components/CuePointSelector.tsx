@@ -21,6 +21,8 @@ interface PlayerState {
   duration: number;
   start: number;
   end: number;
+  position: number;
+  isPlayingCorrectTrack: boolean;
 }
 
 const formatTime = (ms: number) => {
@@ -42,9 +44,12 @@ const CuePointSelector = ({
     duration: endMs,
     start: startMs,
     end: endMs,
+    position: 0,
+    isPlayingCorrectTrack: false,
   });
   const debounceTimerRef = useRef<NodeJS.Timeout>(null!);
   const lastValuesRef = useRef<[number, number]>([startMs, endMs]);
+  const positionUpdateIntervalRef = useRef<NodeJS.Timeout>(null!);
 
   useEffect(() => {
     if (accessToken && deviceId) {
@@ -60,11 +65,34 @@ const CuePointSelector = ({
     };
 
     const handleStateChange = (state: Spotify.PlaybackState) => {
+      const isPlayingCorrectTrack =
+        state.track_window?.current_track?.uri === spotifyUri;
       setState((prev) => ({
         ...prev,
         isPaused: state.paused,
         duration: state.duration,
+        position: state.position,
+        isPlayingCorrectTrack,
       }));
+
+      // Clear any existing position update interval
+      if (positionUpdateIntervalRef.current) {
+        clearInterval(positionUpdateIntervalRef.current);
+      }
+
+      // If we're playing the correct track and not paused, start updating position
+      if (isPlayingCorrectTrack && !state.paused) {
+        const startTime = Date.now();
+        const startPosition = state.position;
+
+        positionUpdateIntervalRef.current = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          setState((prev) => ({
+            ...prev,
+            position: startPosition + elapsed,
+          }));
+        }, 100); // Update every 100ms for smooth movement
+      }
     };
 
     player.addListener("ready", handleReady);
@@ -73,8 +101,11 @@ const CuePointSelector = ({
     return () => {
       player.removeListener("ready", handleReady);
       player.removeListener("player_state_changed", handleStateChange);
+      if (positionUpdateIntervalRef.current) {
+        clearInterval(positionUpdateIntervalRef.current);
+      }
     };
-  }, [player]);
+  }, [player, spotifyUri]);
 
   const handlePlayPause = useCallback(async () => {
     if (!accessToken || !deviceId) return;
@@ -170,14 +201,24 @@ const CuePointSelector = ({
       </div>
 
       <div className="space-y-2">
-        <Slider
-          value={[state.start, state.end]}
-          min={0}
-          max={state.duration || endMs}
-          step={1000}
-          onValueChange={handleSliderChange}
-          className="w-full"
-        />
+        <div className="relative">
+          <Slider
+            value={[state.start, state.end]}
+            min={0}
+            max={state.duration || endMs}
+            step={1000}
+            onValueChange={handleSliderChange}
+            className="w-full"
+          />
+          {state.isPlayingCorrectTrack && (
+            <div
+              className="absolute -top-3 -z-10 h-8 w-0.5 -translate-x-1/2 bg-red-500"
+              style={{
+                left: `${(state.position / (state.duration || endMs)) * 100}%`,
+              }}
+            />
+          )}
+        </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatTime(0)}</span>
           <span>{formatTime(state.duration || endMs)}</span>
