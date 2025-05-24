@@ -1,16 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import SpotifyPlayer from "react-spotify-web-playback";
+import React from "react";
 
-import client from "@cued/auth/client";
+import { Label, Slider } from "@cued/ui";
 
-interface CuePointSelectorProps {
-  spotifyUri: string;
-  startMs: number;
-  endMs: number;
-  accessToken: string | null;
-}
+import type { CuePointSelectorProps } from "./spotify/types";
+import { PlayerControlsComponent } from "./spotify/player-controls";
+import { useSpotifyPlayer } from "./spotify/use-spotify-player";
 
 const CuePointSelector = ({
   spotifyUri,
@@ -18,17 +14,48 @@ const CuePointSelector = ({
   endMs,
   accessToken,
 }: CuePointSelectorProps) => {
-  // Render a spotify player for the given uri with audio controls. There should be draggable handles to select the start and end of the audio.
-  const [start, setStart] = useState(startMs);
-  const [end, setEnd] = useState(endMs);
+  const [state, controls] = useSpotifyPlayer(spotifyUri, startMs, accessToken);
 
-  return accessToken ? (
-    <SpotifyPlayer
-      token={accessToken}
-      uris={[spotifyUri]}
-      initialVolume={0.5}
-    />
-  ) : null;
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <Label>Start Time</Label>
+          <div className="text-sm font-medium">
+            {controls.formatTime(state.start)}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label>End Time</Label>
+          <div className="text-sm font-medium">
+            {controls.formatTime(state.end)}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Slider
+          value={[state.start, state.end]}
+          min={0}
+          max={state.duration || endMs}
+          step={1000}
+          onValueChange={controls.handleSliderChange}
+          className="w-full"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{controls.formatTime(0)}</span>
+          <span>{controls.formatTime(state.duration || endMs)}</span>
+        </div>
+      </div>
+
+      {state.isPlayerReady && (
+        <PlayerControlsComponent
+          controls={controls}
+          isPaused={state.isPaused}
+        />
+      )}
+    </div>
+  );
 };
 
 export default CuePointSelector;

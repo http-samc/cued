@@ -25,6 +25,8 @@
     "@trpc/react-query": "^11.1.2",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
+    "@types/spotify-api": "^0.0.25",
+    "@types/spotify-web-playback-sdk": "^0.1.19",
     "geist": "^1.3.1",
     "motion": "^12.12.1",
     "next": "^15.3.1",
