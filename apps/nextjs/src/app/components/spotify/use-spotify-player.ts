@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 
 export const useSpotifyPlayer = (accessToken: string | null) => {
   const [player, setPlayer] = useState<Spotify.Player | null>(null);
+  const [playerState, setPlayerState] = useState<Spotify.PlaybackState | null>(
+    null,
+  );
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
   const initializePlayer = useCallback(() => {
@@ -31,6 +34,10 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
         setDeviceId(device_id);
       });
 
+      newPlayer.on("player_state_changed", (state) => {
+        setPlayerState(state);
+      });
+
       console.log("Connecting player");
       await newPlayer.connect();
       setPlayer(newPlayer);
@@ -41,5 +48,5 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
     initializePlayer();
   }, [accessToken]);
 
-  return { player, deviceId };
+  return { player, deviceId, playerState };
 };

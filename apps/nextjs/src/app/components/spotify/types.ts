@@ -18,8 +18,6 @@ export interface PlayerState {
 
 export interface PlayerControls {
   handlePlayPause: () => void;
-  handlePreviousTrack: () => void;
-  handleNextTrack: () => void;
   handleSliderChange: (values: [number, number]) => void;
   formatTime: (ms: number) => string;
 }

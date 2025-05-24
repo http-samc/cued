@@ -85,14 +85,6 @@ const CuePointSelector = ({
     }
   }, [accessToken, deviceId, spotifyUri, state.isPaused, state.start]);
 
-  const handlePreviousTrack = useCallback(() => {
-    player?.previousTrack();
-  }, [player]);
-
-  const handleNextTrack = useCallback(() => {
-    player?.nextTrack();
-  }, [player]);
-
   const handleSliderChange = useCallback(
     async (values: [number, number]) => {
       console.log("Handling slider change");
@@ -158,8 +150,6 @@ const CuePointSelector = ({
 
   const controls = {
     handlePlayPause,
-    handlePreviousTrack,
-    handleNextTrack,
     handleSliderChange,
     formatTime,
   };
