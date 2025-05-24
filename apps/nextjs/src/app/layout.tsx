@@ -7,6 +7,7 @@ import { ThemeProvider, ThemeToggle } from "@cued/ui/theme";
 import { Toaster } from "@cued/ui/toast";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { SpotifyPlayerProvider } from "./components/spotify/spotify-player-context";
 
 import "~/app/globals.css";
 
@@ -51,7 +52,9 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         )}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TRPCReactProvider>{props.children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <SpotifyPlayerProvider>{props.children}</SpotifyPlayerProvider>
+          </TRPCReactProvider>
           <div className="absolute bottom-4 right-4">
             <ThemeToggle />
           </div>

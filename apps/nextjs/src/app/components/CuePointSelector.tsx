@@ -74,7 +74,7 @@ const CuePointSelector = ({
 
     const handleStateChange = (state: Spotify.PlaybackState) => {
       const isPlayingCorrectTrack =
-        state.track_window?.current_track?.uri === spotifyUri;
+        state?.track_window?.current_track?.uri === spotifyUri;
       setState((prev) => ({
         ...prev,
         isPaused: state.paused,
@@ -126,7 +126,6 @@ const CuePointSelector = ({
 
   const handleSliderChange = useCallback(
     async (values: [number, number]) => {
-      console.log("Handling slider change");
       const [newStart, newEnd] = values;
       const [oldStart, oldEnd] = [state.start, state.end];
 
@@ -156,7 +155,6 @@ const CuePointSelector = ({
           lastValuesRef.current[0] === newStart &&
           lastValuesRef.current[1] === newEnd
         ) {
-          console.log("Debounced slider change - values stable");
           // Handle seeking based on which thumb was moved
           if (startThumbMoved) {
             await playTrack(accessToken, deviceId, spotifyUri, newStart);

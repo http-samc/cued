@@ -4,7 +4,7 @@ export const playTrack = async (
   spotifyUri: string,
   startMs: number = 0,
 ) => {
-  if (!accessToken || !deviceId) return;
+  if (!accessToken || !deviceId || !spotifyUri) return;
   await fetch(
     `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
     {

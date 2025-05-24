@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
+
+import { useSpotifyPlayerContext } from "./spotify-player-context";
 
 export const useSpotifyPlayer = (accessToken: string | null) => {
-  const [player, setPlayer] = useState<Spotify.Player | null>(null);
-  const [playerState, setPlayerState] = useState<Spotify.PlaybackState | null>(
-    null,
-  );
-  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const {
+    player,
+    playerState,
+    deviceId,
+    setPlayer,
+    setPlayerState,
+    setDeviceId,
+  } = useSpotifyPlayerContext();
 
   const initializePlayer = useCallback(() => {
+    if (!accessToken || player) return;
     console.log("Initializing player");
-    if (!accessToken) return;
+
     const script = document.createElement("script");
     script.src = "https://sdk.scdn.co/spotify-player.js";
     script.async = true;
@@ -42,11 +48,11 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
       await newPlayer.connect();
       setPlayer(newPlayer);
     };
-  }, [accessToken]);
+  }, [accessToken, player, setPlayer, setPlayerState, setDeviceId]);
 
   useEffect(() => {
     initializePlayer();
-  }, [accessToken]);
+  }, [initializePlayer]);
 
   return { player, deviceId, playerState };
 };
