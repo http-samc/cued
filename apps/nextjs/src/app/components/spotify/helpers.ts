@@ -2,7 +2,7 @@ export const playTrack = async (
   accessToken: string | null,
   deviceId: string | null,
   spotifyUri: string,
-  startMs: number = 0,
+  startMs = 0,
 ) => {
   if (!accessToken || !deviceId || !spotifyUri) return;
   await fetch(

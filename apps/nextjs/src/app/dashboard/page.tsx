@@ -8,20 +8,11 @@ import { motion } from "framer-motion";
 import { useDebounce } from "use-debounce";
 
 import client from "@cued/auth/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@cued/ui/dialog";
 import { Input } from "@cued/ui/input";
 import { Label } from "@cued/ui/label";
 
 import { useTRPC } from "~/trpc/react";
 import CuePointSelector from "../components/CuePointSelector";
-import { pauseTrack } from "../components/spotify/helpers";
-import { useSpotifyPlayer } from "../components/spotify/use-spotify-player";
 
 const DashboardPage = () => {
   const trpc = useTRPC();
@@ -29,7 +20,6 @@ const DashboardPage = () => {
   const [debouncedQuery] = useDebounce(query, 500);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const { player, deviceId } = useSpotifyPlayer(accessToken);
 
   const getAccessToken = async () => {
     const { data } = await client.getAccessToken({
@@ -121,35 +111,18 @@ const DashboardPage = () => {
             ))}
         </ul>
       </div>
-      <Dialog
-        open={!!selectedTrack}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTrack(null);
-            if (player) {
-              // player.pause();
-              pauseTrack(accessToken, deviceId);
+      {selectedTrack && (
+        <CuePointSelector
+          track={selectedTrack}
+          accessToken={accessToken}
+          open={!!selectedTrack}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedTrack(null);
             }
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedTrack?.name}</DialogTitle>
-          </DialogHeader>
-          <DialogDescription>
-            {selectedTrack?.artists.map((artist) => artist.name).join(", ")}
-            {" | "}
-            {selectedTrack?.album.name}
-          </DialogDescription>
-          <CuePointSelector
-            spotifyUri={selectedTrack?.uri!}
-            startMs={0}
-            endMs={selectedTrack?.duration_ms!}
-            accessToken={accessToken}
-          />
-        </DialogContent>
-      </Dialog>
+          }}
+        />
+      )}
     </>
   );
 };

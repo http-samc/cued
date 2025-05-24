@@ -1,10 +1,19 @@
 "use client";
 
+import type { Track } from "@spotify/web-api-ts-sdk";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
-import { Label, Slider } from "@cued/ui";
+import { Slider } from "@cued/ui";
 import { Button } from "@cued/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@cued/ui/dialog";
 import { toast } from "@cued/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
@@ -13,20 +22,10 @@ import { PlayerControlsComponent } from "./spotify/player-controls";
 import { useSpotifyPlayer } from "./spotify/use-spotify-player";
 
 interface CuePointSelectorProps {
-  spotifyUri: string;
-  startMs: number;
-  endMs: number;
+  track: Track;
   accessToken: string | null;
-}
-
-interface PlayerState {
-  isPlayerReady: boolean;
-  isPaused: boolean;
-  duration: number;
-  start: number;
-  end: number;
-  position: number;
-  isPlayingCorrectTrack: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const formatTime = (ms: number) => {
@@ -36,109 +35,80 @@ const formatTime = (ms: number) => {
 };
 
 const CuePointSelector = ({
-  spotifyUri,
-  startMs,
-  endMs,
+  track,
   accessToken,
+  open,
+  onOpenChange: onOpenChangeProp,
 }: CuePointSelectorProps) => {
   const trpc = useTRPC();
   const { mutateAsync: insertTrack } = useMutation(
     trpc.spotify.insertTrack.mutationOptions(),
   );
-  const { player, deviceId } = useSpotifyPlayer(accessToken);
-  const [state, setState] = useState<PlayerState>({
-    isPlayerReady: false,
-    isPaused: true,
-    duration: endMs,
-    start: startMs,
-    end: endMs,
-    position: 0,
-    isPlayingCorrectTrack: false,
-  });
-  const debounceTimerRef = useRef<NodeJS.Timeout>(null!);
-  const lastValuesRef = useRef<[number, number]>([startMs, endMs]);
-  const positionUpdateIntervalRef = useRef<NodeJS.Timeout>(null!);
+  const { deviceId, playerState } = useSpotifyPlayer(accessToken);
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(track.duration_ms);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastValuesRef = useRef<[number, number]>([0, track.duration_ms]);
+  const positionUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onOpenChange = useCallback(
+    (open: boolean) => {
+      onOpenChangeProp(open);
+      if (!open) {
+        void pauseTrack(accessToken, deviceId);
+      }
+    },
+    [onOpenChangeProp, accessToken, deviceId],
+  );
 
   useEffect(() => {
     if (accessToken && deviceId) {
-      void playTrack(accessToken, deviceId, spotifyUri, startMs);
+      void playTrack(accessToken, deviceId, track.uri, 0);
     }
-  }, [accessToken, deviceId, spotifyUri, startMs]);
+  }, [accessToken, deviceId, track.uri]);
 
   useEffect(() => {
-    if (!player) return;
+    if (!playerState.isPlayingCorrectTrack) return;
 
-    const handleReady = () => {
-      setState((prev) => ({ ...prev, isPlayerReady: true }));
-    };
+    // Clear any existing position update interval
+    if (positionUpdateIntervalRef.current) {
+      clearInterval(positionUpdateIntervalRef.current);
+    }
 
-    const handleStateChange = (state: Spotify.PlaybackState) => {
-      const isPlayingCorrectTrack =
-        state?.track_window?.current_track?.uri === spotifyUri;
-      setState((prev) => ({
-        ...prev,
-        isPaused: state.paused,
-        duration: state.duration,
-        position: state.position,
-        isPlayingCorrectTrack,
-      }));
-
-      // Clear any existing position update interval
-      if (positionUpdateIntervalRef.current) {
-        clearInterval(positionUpdateIntervalRef.current);
-      }
-
-      // If we're playing the correct track and not paused, start updating position
-      if (isPlayingCorrectTrack && !state.paused) {
-        const startTime = Date.now();
-        const startPosition = state.position;
-
-        positionUpdateIntervalRef.current = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          setState((prev) => ({
-            ...prev,
-            position: startPosition + elapsed,
-          }));
-        }, 100); // Update every 100ms for smooth movement
-      }
-    };
-
-    player.addListener("ready", handleReady);
-    player.addListener("player_state_changed", handleStateChange);
+    // If we're playing the correct track and not paused, start updating position
+    if (!playerState.isPaused) {
+      positionUpdateIntervalRef.current = setInterval(() => {
+        // Position updates are handled by the player state now
+      }, 100);
+    }
 
     return () => {
-      player.removeListener("ready", handleReady);
-      player.removeListener("player_state_changed", handleStateChange);
       if (positionUpdateIntervalRef.current) {
         clearInterval(positionUpdateIntervalRef.current);
       }
     };
-  }, [player, spotifyUri]);
+  }, [playerState.isPlayingCorrectTrack, playerState.isPaused]);
 
   const handlePlayPause = useCallback(async () => {
     if (!accessToken || !deviceId) return;
-    if (state.isPaused) {
-      await playTrack(accessToken, deviceId, spotifyUri, state.start);
+    if (playerState.isPaused) {
+      await playTrack(accessToken, deviceId, track.uri, start);
     } else {
       await pauseTrack(accessToken, deviceId);
     }
-  }, [accessToken, deviceId, spotifyUri, state.isPaused, state.start]);
+  }, [accessToken, deviceId, track.uri, playerState.isPaused, start]);
 
   const handleSliderChange = useCallback(
-    async (values: [number, number]) => {
+    (values: [number, number]) => {
       const [newStart, newEnd] = values;
-      const [oldStart, oldEnd] = [state.start, state.end];
+      const [oldStart, oldEnd] = [start, end];
 
       // Determine which thumb was moved
       const startThumbMoved = newStart !== oldStart;
       const endThumbMoved = newEnd !== oldEnd;
 
       // Update state first
-      setState((prev) => ({
-        ...prev,
-        start: newStart,
-        end: newEnd,
-      }));
+      setStart(newStart);
+      setEnd(newEnd);
 
       // Store the current values
       lastValuesRef.current = [newStart, newEnd];
@@ -149,7 +119,7 @@ const CuePointSelector = ({
       }
 
       // Set new timer
-      debounceTimerRef.current = setTimeout(async () => {
+      debounceTimerRef.current = setTimeout(() => {
         // Only proceed if the values haven't changed since we started the timer
         if (
           lastValuesRef.current[0] === newStart &&
@@ -157,23 +127,15 @@ const CuePointSelector = ({
         ) {
           // Handle seeking based on which thumb was moved
           if (startThumbMoved) {
-            await playTrack(accessToken, deviceId, spotifyUri, newStart);
+            void playTrack(accessToken, deviceId, track.uri, newStart);
           } else if (endThumbMoved) {
             const seekPosition = Math.max(0, newEnd - 3000);
-            await playTrack(accessToken, deviceId, spotifyUri, seekPosition);
+            void playTrack(accessToken, deviceId, track.uri, seekPosition);
           }
         }
       }, 100);
     },
-    [
-      player,
-      state.start,
-      state.end,
-      state.isPaused,
-      accessToken,
-      deviceId,
-      spotifyUri,
-    ],
+    [accessToken, deviceId, track.uri, start, end],
   );
 
   // Cleanup timer on unmount
@@ -194,51 +156,63 @@ const CuePointSelector = ({
   if (!accessToken || !deviceId) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="relative">
-          <Slider
-            value={[state.start, state.end]}
-            min={0}
-            max={state.duration || endMs}
-            step={1000}
-            onValueChange={handleSliderChange}
-            className="w-full"
-          />
-          {state.isPlayingCorrectTrack && (
-            <div
-              className="absolute -top-3 -z-10 h-8 w-0.5 -translate-x-1/2 bg-red-500"
-              style={{
-                left: `${(state.position / (state.duration || endMs)) * 100}%`,
-              }}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{track.name}</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>
+          {track.artists.map((artist) => artist.name).join(", ")}
+          {" | "}
+          {track.album.name}
+        </DialogDescription>
+        <div className="py-4">
+          <div className="relative flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="">{formatTime(0)}</span>
+
+            <Slider
+              value={[start, end]}
+              min={0}
+              max={playerState.duration || track.duration_ms}
+              step={1000}
+              onValueChange={handleSliderChange}
+              className="w-full"
             />
-          )}
+            {playerState.isPlayingCorrectTrack && (
+              <div
+                className="absolute -top-2 -z-10 h-8 w-0.5 -translate-x-1/2 bg-red-500"
+                style={{
+                  left: `${(playerState.position / (playerState.duration || track.duration_ms)) * 100}%`,
+                }}
+              />
+            )}
+            <span>{formatTime(playerState.duration || track.duration_ms)}</span>
+          </div>
         </div>
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatTime(0)}</span>
-          <span>{formatTime(state.duration || endMs)}</span>
-        </div>
-      </div>
-      {state.isPlayerReady && (
-        <PlayerControlsComponent
-          controls={controls}
-          isPaused={state.isPaused}
-        />
-      )}
-      <Button
-        onClick={() => {
-          void insertTrack({
-            trackId: spotifyUri,
-            preferredStart: state.start,
-            preferredEnd: state.end,
-          }).then(() => {
-            toast.success("Track inserted");
-          });
-        }}
-      >
-        Insert Track
-      </Button>
-    </div>
+        <DialogFooter className="flex w-full items-center !justify-between">
+          <PlayerControlsComponent
+            controls={controls}
+            isPaused={playerState.isPaused}
+          />
+          <Button
+            size="lg"
+            className="h-8"
+            onClick={() => {
+              void insertTrack({
+                trackId: track.uri,
+                preferredStart: start,
+                preferredEnd: end,
+              }).then(() => {
+                toast.success("Track inserted");
+                onOpenChange(false);
+              });
+            }}
+          >
+            Save edits
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

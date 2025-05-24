@@ -12,13 +12,11 @@ export const PlayerControlsComponent: React.FC<PlayerControlsProps> = ({
   isPaused,
 }) => {
   return (
-    <div className="flex items-center justify-center">
-      <button
-        onClick={controls.handlePlayPause}
-        className="rounded-full bg-black p-2 text-white hover:bg-gray-800"
-      >
-        {isPaused ? "▶" : "⏸"}
-      </button>
-    </div>
+    <button
+      onClick={controls.handlePlayPause}
+      className="rounded-full bg-black p-2 text-white hover:bg-gray-800"
+    >
+      {isPaused ? "▶" : "⏸"}
+    </button>
   );
 };

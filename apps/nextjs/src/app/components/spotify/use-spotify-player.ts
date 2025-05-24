@@ -1,6 +1,15 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSpotifyPlayerContext } from "./spotify-player-context";
+
+interface EnhancedPlayerState {
+  isPlayerReady: boolean;
+  isPaused: boolean;
+  duration: number;
+  position: number;
+  isPlayingCorrectTrack: boolean;
+  trackUri: string | null;
+}
 
 export const useSpotifyPlayer = (accessToken: string | null) => {
   const {
@@ -11,6 +20,10 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
     setPlayerState,
     setDeviceId,
   } = useSpotifyPlayerContext();
+
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const initializePlayer = useCallback(() => {
     if (!accessToken || player) return;
@@ -36,23 +49,46 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
         volume: 0.5,
       });
 
-      newPlayer.on("ready", ({ device_id }) => {
+      const readyListener = ({ device_id }: { device_id: string }) => {
         setDeviceId(device_id);
-      });
+        setIsPlayerReady(true);
+      };
 
-      newPlayer.on("player_state_changed", (state) => {
+      const stateChangeListener = (state: Spotify.PlaybackState) => {
         setPlayerState(state);
-      });
+      };
+
+      newPlayer.addListener("ready", readyListener);
+      newPlayer.addListener("player_state_changed", stateChangeListener);
 
       console.log("Connecting player");
       await newPlayer.connect();
       setPlayer(newPlayer);
+
+      cleanupRef.current = () => {
+        newPlayer.removeListener("ready", readyListener);
+        newPlayer.removeListener("player_state_changed", stateChangeListener);
+      };
     };
   }, [accessToken, player, setPlayer, setPlayerState, setDeviceId]);
 
   useEffect(() => {
     initializePlayer();
+    return () => {
+      cleanupRef.current?.();
+    };
   }, [initializePlayer]);
 
-  return { player, deviceId, playerState };
+  const enhancedState: EnhancedPlayerState = {
+    isPlayerReady,
+    isPaused: playerState?.paused ?? true,
+    duration: playerState?.duration ?? 0,
+    position: playerState?.position ?? 0,
+    isPlayingCorrectTrack:
+      playerState?.track_window?.current_track?.uri ===
+      playerState?.track_window?.current_track?.uri,
+    trackUri: playerState?.track_window?.current_track?.uri ?? null,
+  };
+
+  return { player, deviceId, playerState: enhancedState };
 };
