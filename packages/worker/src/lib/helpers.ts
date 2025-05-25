@@ -1,4 +1,5 @@
-import { AccessToken, TrackItem } from "@spotify/web-api-ts-sdk";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import type { AccessToken, TrackItem } from "@spotify/web-api-ts-sdk";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@cued/db/client";
@@ -39,7 +40,7 @@ const _refreshAccessToken = async (clientId: string, refreshToken: string) => {
     throw new Error(`Failed to refresh token: ${result.statusText}, ${text}`);
   }
 
-  const json: AccessToken = JSON.parse(text);
+  const json = JSON.parse(text) as AccessToken;
   return json;
 };
 

@@ -20,10 +20,12 @@
   },
   "dependencies": {
     "@cued/auth": "workspace:*",
+    "@cued/worker": "workspace:*",
     "@cued/db": "workspace:*",
     "@cued/validators": "workspace:*",
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "@trpc/server": "catalog:",
+    "bullmq": "^5.53.0",
     "superjson": "2.2.2",
     "zod": "catalog:"
   },

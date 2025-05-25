@@ -1,23 +1,48 @@
 import type { TRPCRouterRecord } from "@trpc/server";
+import { Queue } from "bullmq";
+
+import type { WorkerConfig } from "@cued/worker";
+import { redis as connection } from "@cued/db";
 
 import { protectedProcedure } from "../trpc";
 
+const queue = new Queue<WorkerConfig>("cued", {
+  connection,
+});
+
 export const queueRouter = {
-  getUserJob: protectedProcedure.query(({ ctx }) => {
+  getUserJob: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
+
+    const job = await queue.getJob(userId);
+
+    if (!job) {
+      return null;
+    }
+
+    const jobStartedAt = job.processedOn ?? 0;
 
     return {
       userId,
-      jobStartedAt: Date.now(),
-      jobEndsAt: Date.now() + 1000 * 60 * 60,
+      jobStartedAt,
+      jobEndsAt: jobStartedAt + 1000 * 60 * 60,
     };
   }),
-  toggleJob: protectedProcedure.mutation(({ ctx }) => {
+  toggleJob: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
-    return {
-      userId,
-      success: true,
-    };
+    const job = await queue.getJob(userId);
+
+    if (!job) {
+      await queue.add(userId, {
+        userId,
+        pollInterval: 1000 * 5, // 5 seconds
+        runs: 12 * 60, // 1 hour worth of runs
+      });
+      return { action: "created" };
+    } else {
+      await job.remove();
+      return { action: "removed" };
+    }
   }),
 } satisfies TRPCRouterRecord;

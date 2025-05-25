@@ -10,18 +10,19 @@
   "scripts": {
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "dev": "tsc --watch",
+    "dev": "tsx src/app.ts",
     "test": "tsx src/lib/test.ts",
+    "start": "node dist/app.js",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "devDependencies": {
+    "@cued/auth": "workspace:*",
+    "@cued/db": "workspace:*",
     "@cued/eslint-config": "workspace:*",
     "@cued/prettier-config": "workspace:*",
     "@cued/tsconfig": "workspace:*",
-    "@cued/db": "workspace:*",
-    "@cued/auth": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tsx": "^4.7.1",
@@ -29,6 +30,7 @@
   },
   "prettier": "@cued/prettier-config",
   "dependencies": {
-    "@spotify/web-api-ts-sdk": "^1.2.0"
+    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "bullmq": "^5.53.0"
   }
 }

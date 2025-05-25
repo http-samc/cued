@@ -1,1 +1,1 @@
-export const name = "worker";
+export type { WorkerConfig } from "./lib/worker";
