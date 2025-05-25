@@ -1,7 +1,8 @@
-import { SpotifyApi } from "@spotify/web-api-ts-sdk";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import type { SpotifyApi } from "@spotify/web-api-ts-sdk";
 
+import type { WorkerConfig } from "./worker";
 import { getResolvedTrackData } from "./helpers";
-import { WorkerConfig } from "./worker";
 
 interface PollerConfig {
   sdk: SpotifyApi;
@@ -19,7 +20,7 @@ export default async function poll({
   const data = await sdk.player.getCurrentlyPlayingTrack();
 
   // If we're not playing anything, no further action is needed
-  if (!data) {
+  if (!data.is_playing) {
     console.debug("Terminating poll: no currently playing track");
     return;
   }
@@ -64,11 +65,15 @@ export default async function poll({
 
   // Play the next track
   try {
-    await sdk.player.skipToNext(null!);
-  } catch (error) {} // This errors due to a Spotify SDK serialization issue, but it works
+    await sdk.player.skipToNext("");
+  } catch (error) {
+    // This errors due to a Spotify SDK serialization issue, but it works
+  }
 
   // Seek to the appropriate start time
   try {
     await sdk.player.seekToPosition(nextPreferredStart);
-  } catch (error) {} // This errors due to a Spotify SDK serialization issue, but it works
+  } catch (error) {
+    // This errors due to a Spotify SDK serialization issue, but it works
+  }
 }

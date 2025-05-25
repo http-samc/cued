@@ -85,11 +85,11 @@ const DashboardPage = () => {
               ))}
             {(isFetchingSearchResults || isFetchingPlaylists) &&
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((_, i) => (
-                <li key={i} className="h-64 w-48 space-y-2 border p-2">
+                <div key={i} className="h-64 w-48 space-y-2 border p-2">
                   <div className="h-44 w-full animate-pulse bg-gray-600" />
                   <div className="h-6 w-36 animate-pulse bg-gray-600 delay-100"></div>
                   <div className="h-3 w-32 animate-pulse bg-gray-600 delay-200"></div>
-                </li>
+                </div>
               ))}
             {!isFetchingSearchResults && debouncedQuery && !searchResults && (
               <div className="col-span-full grid h-96 w-full place-content-center border border-dashed">

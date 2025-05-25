@@ -1,15 +1,11 @@
 import type { SimplifiedPlaylist } from "@spotify/web-api-ts-sdk";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import authClient from "@cued/auth/client";
-import { env } from "@cued/auth/env";
 import { and, eq } from "@cued/db";
-import { account, track } from "@cued/db/schema";
+import { track } from "@cued/db/schema";
 
-import { spotify } from "../lib/spotify";
+import { spotify, spotifyWithAccessToken } from "../lib/spotify";
 import { protectedProcedure } from "../trpc";
 
 export const spotifyRouter = {
@@ -32,42 +28,17 @@ export const spotifyRouter = {
       };
     }),
   getCurrentUsersPlaylists: protectedProcedure.query(async ({ ctx }) => {
-    const spotifyAcccount = await ctx.db.query.account.findFirst({
-      where: eq(account.userId, ctx.session.user.id),
-    });
-
-    if (!spotifyAcccount?.accessToken || !spotifyAcccount.refreshToken) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "No Spotify account found",
-      });
-    }
-
-    const accessToken = spotifyAcccount.accessToken;
-
-    if (
-      spotifyAcccount.accessTokenExpiresAt &&
-      spotifyAcccount.accessTokenExpiresAt.getTime() < Date.now()
-    ) {
-      await authClient.refreshToken({
-        providerId: "spotify",
-        accountId: spotifyAcccount.id,
-      });
-    }
-    const spotify = SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
-      access_token: accessToken,
-      refresh_token: spotifyAcccount.refreshToken,
-      token_type: "Bearer",
-      expires: spotifyAcccount.accessTokenExpiresAt?.getTime(),
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      expires_in: null!,
-      // expires_in: spotifyAcccount.accessTokenExpiresAt!.getTime() - Date.now(),
-    });
+    const spotify = await spotifyWithAccessToken(ctx.session.user.id);
+    const spotifyUser = await spotify.currentUser.profile();
 
     const playlists: SimplifiedPlaylist[] = [];
     let i = 0;
     while (true) {
-      const result = await spotify.currentUser.playlists.playlists(50, i * 50);
+      const result = await spotify.playlists.getUsersPlaylists(
+        spotifyUser.id,
+        50,
+        i * 50,
+      );
       playlists.push(...result.items);
       if (!result.next) {
         break;
@@ -77,6 +48,14 @@ export const spotifyRouter = {
 
     return playlists;
   }),
+  getPlaylistTracks: protectedProcedure
+    .input(z.object({ playlistId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const spotify = await spotifyWithAccessToken(ctx.session.user.id);
+      const playlist = await spotify.playlists.getPlaylist(input.playlistId);
+
+      return playlist.tracks.items;
+    }),
   insertTrack: protectedProcedure
     .input(
       z.object({
