@@ -20,8 +20,8 @@ const PlaylistView = ({ playlistId, onTrackSelected }: PlaylistViewProps) => {
   );
 
   if (isFetchingTracks) {
-    return [1, 2, 3, 4, 5].map((_, index) => (
-      <div key={index} className="h-12 w-full animate-pulse bg-muted" />
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((_, index) => (
+      <div key={index} className="h-24 w-full animate-pulse bg-muted" />
     ));
   }
 

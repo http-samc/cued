@@ -85,7 +85,7 @@ const DashboardPage = () => {
               {selectedPlaylist?.name}
             </h3>
           </div>
-          <div className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="mx-auto grid w-fit gap-4 sm:grid-cols-2 md:grid-cols-3 lg:w-full lg:grid-cols-4">
             {searchResults?.tracks.map((track) => (
               <MediaCard
                 key={track.id}

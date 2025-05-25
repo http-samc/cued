@@ -1,4 +1,8 @@
-import type { SimplifiedPlaylist } from "@spotify/web-api-ts-sdk";
+import type {
+  PlaylistedTrack,
+  SimplifiedPlaylist,
+  Track,
+} from "@spotify/web-api-ts-sdk";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 
@@ -52,9 +56,25 @@ export const spotifyRouter = {
     .input(z.object({ playlistId: z.string() }))
     .query(async ({ ctx, input }) => {
       const spotify = await spotifyWithAccessToken(ctx.session.user.id);
-      const playlist = await spotify.playlists.getPlaylist(input.playlistId);
 
-      return playlist.tracks.items;
+      const tracks: PlaylistedTrack<Track>[] = [];
+      let i = 0;
+      while (true) {
+        const result = await spotify.playlists.getPlaylistItems(
+          input.playlistId,
+          undefined,
+          undefined,
+          50,
+          i * 50,
+        );
+        tracks.push(...result.items);
+        if (!result.next) {
+          break;
+        }
+        i++;
+      }
+
+      return tracks;
     }),
   insertTrack: protectedProcedure
     .input(
