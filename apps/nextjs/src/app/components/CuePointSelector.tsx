@@ -224,7 +224,7 @@ const CuePointSelector = ({
               });
             }}
           >
-            Save edits
+            Save track
           </Button>
         </DialogFooter>
       </DialogContent>

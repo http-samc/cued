@@ -41,7 +41,7 @@ const PlaylistView = ({ playlistId, onTrackSelected }: PlaylistViewProps) => {
       <button
         key={track.id}
         onClick={() => onTrackSelected(track)}
-        className="flex items-center gap-4 border p-4 hover:bg-accent"
+        className="flex w-full items-center gap-4 border p-4 hover:bg-accent sm:w-96 lg:w-[500px]"
       >
         {track.album.images[0] && (
           <img

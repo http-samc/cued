@@ -11,7 +11,9 @@ import { formatTime } from "./CuePointSelector";
 const SessionButton = () => {
   const trpc = useTRPC();
   const { data: session, refetch } = useQuery(
-    trpc.queue.getUserJob.queryOptions(),
+    trpc.queue.getUserJob.queryOptions(undefined, {
+      refetchInterval: 1000 * 60,
+    }),
   );
   const { mutateAsync: toggleSession, isPending: isTogglingSession } =
     useMutation(trpc.queue.toggleJob.mutationOptions());

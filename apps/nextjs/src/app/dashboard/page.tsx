@@ -69,7 +69,7 @@ const DashboardPage = () => {
             onChange={(e) => setQuery(e.target.value)}
           />
         </motion.div>
-        <div className="w-full space-y-4">
+        <div className="w-fit space-y-4 lg:w-full">
           <div className="flex w-full items-center gap-2 border-b">
             {selectedPlaylist && (
               <button
