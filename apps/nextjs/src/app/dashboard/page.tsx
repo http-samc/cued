@@ -4,6 +4,7 @@ import type { Track } from "@spotify/web-api-ts-sdk";
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { LucideArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 
 import client from "@cued/auth/client";
@@ -13,11 +14,16 @@ import { Label } from "@cued/ui/label";
 import { useTRPC } from "~/trpc/react";
 import CuePointSelector from "../components/CuePointSelector";
 import MediaCard from "../components/MediaCard";
+import PlaylistView from "../components/PlaylistView";
 
 const DashboardPage = () => {
   const trpc = useTRPC();
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounce(query, 500);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
@@ -50,7 +56,7 @@ const DashboardPage = () => {
 
   return (
     <>
-      <div className="flex flex-col items-center space-y-8 p-8">
+      <div className="flex w-full flex-col items-center space-y-8 p-8">
         <motion.div layoutId="search" className="mx-auto space-y-1">
           <Label htmlFor="search" className="text-xs">
             Search Spotify
@@ -63,11 +69,20 @@ const DashboardPage = () => {
             onChange={(e) => setQuery(e.target.value)}
           />
         </motion.div>
-        <div className="space-y-4">
-          <div className="w-full border-b">
+        <div className="w-full space-y-4">
+          <div className="flex w-full items-center gap-2 border-b">
+            {selectedPlaylist && (
+              <button
+                className="transition-transform hover:-translate-x-0.5"
+                onClick={() => setSelectedPlaylist(null)}
+              >
+                <LucideArrowLeft size={16} />
+              </button>
+            )}
             <h3 className="text-xl font-semibold">
               {debouncedQuery && <>Results for "{debouncedQuery}"</>}
-              {!debouncedQuery && "Your playlists"}
+              {!debouncedQuery && !selectedPlaylist && "Your playlists"}
+              {selectedPlaylist?.name}
             </h3>
           </div>
           <div className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -80,8 +95,19 @@ const DashboardPage = () => {
             ))}
             {searchResults === undefined &&
               !isFetchingSearchResults &&
+              !selectedPlaylist &&
               playlists?.map((playlist) => (
-                <MediaCard key={playlist.id} item={playlist} />
+                <MediaCard
+                  key={playlist.id}
+                  item={playlist}
+                  onClick={() => {
+                    setQuery("");
+                    setSelectedPlaylist({
+                      id: playlist.id,
+                      name: playlist.name,
+                    });
+                  }}
+                />
               ))}
             {(isFetchingSearchResults || isFetchingPlaylists) &&
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((_, i) => (
@@ -96,6 +122,14 @@ const DashboardPage = () => {
                 <p className="text-sm text-muted-foreground">
                   No results found.
                 </p>
+              </div>
+            )}
+            {selectedPlaylist && (
+              <div className="col-span-full flex w-full flex-col gap-2">
+                <PlaylistView
+                  playlistId={selectedPlaylist.id}
+                  onTrackSelected={setSelectedTrack}
+                />
               </div>
             )}
           </div>

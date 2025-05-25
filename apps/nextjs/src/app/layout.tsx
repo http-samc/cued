@@ -3,7 +3,7 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 
 import { cn } from "@cued/ui";
-import { ThemeProvider, ThemeToggle } from "@cued/ui/theme";
+import { ThemeProvider } from "@cued/ui/theme";
 import { Toaster } from "@cued/ui/toast";
 
 import { TRPCReactProvider } from "~/trpc/react";
@@ -51,13 +51,10 @@ export default function RootLayout(props: { children: React.ReactNode }) {
           GeistMono.variable,
         )}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark">
           <TRPCReactProvider>
             <SpotifyPlayerProvider>{props.children}</SpotifyPlayerProvider>
           </TRPCReactProvider>
-          <div className="absolute bottom-4 right-4">
-            <ThemeToggle />
-          </div>
           <Toaster />
         </ThemeProvider>
       </body>
