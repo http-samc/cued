@@ -2,7 +2,6 @@
 
 import type { Track } from "@spotify/web-api-ts-sdk";
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useDebounce } from "use-debounce";
@@ -13,6 +12,7 @@ import { Label } from "@cued/ui/label";
 
 import { useTRPC } from "~/trpc/react";
 import CuePointSelector from "../components/CuePointSelector";
+import MediaCard from "../components/MediaCard";
 
 const DashboardPage = () => {
   const trpc = useTRPC();
@@ -65,44 +65,16 @@ const DashboardPage = () => {
         </motion.div>
         <ul className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {searchResults?.tracks.map((track) => (
-            <button
+            <MediaCard
               key={track.id}
-              className="h-64 w-48 space-y-2 border p-2 hover:scale-105"
-              onClick={() => {
-                setSelectedTrack(track);
-              }}
-            >
-              <Image
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
-                src={track.album.images[0]?.url!}
-                width={190}
-                height={180}
-                alt={track.name}
-              />
-              <div className="space-y-1">
-                <p className="line-clamp-2 text-sm">{track.name}</p>
-                <p className="line-clamp-1 text-xs opacity-80">
-                  {track.artists.map((artist) => artist.name).join(", ")}
-                </p>
-              </div>
-            </button>
+              item={track}
+              onClick={() => setSelectedTrack(track)}
+            />
           ))}
           {searchResults === undefined &&
             !isFetchingSearchResults &&
             playlists?.map((playlist) => (
-              <li
-                key={playlist.id}
-                className="h-64 w-48 space-y-2 border p-2 hover:scale-105"
-              >
-                <img
-                  src={playlist.images[0]?.url}
-                  className="aspect-square overflow-hidden object-cover"
-                  alt={playlist.name}
-                />
-                <div className="space-y-1">
-                  <p className="line-clamp-2 text-sm">{playlist.name}</p>
-                </div>
-              </li>
+              <MediaCard key={playlist.id} item={playlist} />
             ))}
           {(isFetchingSearchResults || isFetchingPlaylists) &&
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((_, i) => (
