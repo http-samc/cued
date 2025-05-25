@@ -25,7 +25,7 @@ const SessionButton = () => {
       className="h-7 !text-xs"
     >
       {session
-        ? `Pause (${formatTime(session.jobEndsAt - session.jobStartedAt).split(":")[0]}m left)`
+        ? `Pause (${formatTime(session.timeRemaining).split(":")[0]}m left)`
         : "Start session"}
     </Button>
   );

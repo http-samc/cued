@@ -19,13 +19,11 @@ export const queueRouter = {
     if (!job) {
       return null;
     }
-
-    const jobStartedAt = job.processedOn ?? 0;
+    const timeElapsed = Date.now() - job.timestamp;
 
     return {
       userId,
-      jobStartedAt,
-      jobEndsAt: jobStartedAt + 1000 * 60 * 60,
+      timeRemaining: 1000 * 60 * 60 - timeElapsed,
     };
   }),
   toggleJob: protectedProcedure.mutation(async ({ ctx }) => {
@@ -34,14 +32,21 @@ export const queueRouter = {
     const job = await queue.getJob(userId);
 
     if (!job) {
-      await queue.add(userId, {
+      await queue.add(
         userId,
-        pollInterval: 1000 * 5, // 5 seconds
-        runs: 12 * 60, // 1 hour worth of runs
-      });
+        {
+          userId,
+          pollInterval: 1000 * 5, // 5 seconds
+          runs: 12 * 60, // 1 hour worth of runs
+        },
+        {
+          jobId: userId,
+        },
+      );
       return { action: "created" };
     } else {
-      await job.remove();
+      // await job.moveToCompleted();
+      // await job.remove();
       return { action: "removed" };
     }
   }),
