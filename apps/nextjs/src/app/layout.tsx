@@ -26,11 +26,27 @@ export const metadata: Metadata = {
     description: "Play the best parts of your favorite songs.",
     url: "https://cued.smrth.dev",
     siteName: "Cued",
+    images: [
+      {
+        url: "/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Cued logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     site: "@http_samc",
     creator: "@http_samc",
+    images: [
+      {
+        url: "/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Cued logo",
+      },
+    ],
   },
 };
 
