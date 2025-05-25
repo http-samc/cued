@@ -50,7 +50,7 @@ const DashboardPage = () => {
 
   return (
     <>
-      <div className="flex flex-col items-center space-y-16 p-8">
+      <div className="flex flex-col items-center space-y-8 p-8">
         <motion.div layoutId="search" className="mx-auto space-y-1">
           <Label htmlFor="search" className="text-xs">
             Search Spotify
@@ -63,33 +63,43 @@ const DashboardPage = () => {
             onChange={(e) => setQuery(e.target.value)}
           />
         </motion.div>
-        <ul className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {searchResults?.tracks.map((track) => (
-            <MediaCard
-              key={track.id}
-              item={track}
-              onClick={() => setSelectedTrack(track)}
-            />
-          ))}
-          {searchResults === undefined &&
-            !isFetchingSearchResults &&
-            playlists?.map((playlist) => (
-              <MediaCard key={playlist.id} item={playlist} />
+        <div className="space-y-4">
+          <div className="w-full border-b">
+            <h3 className="text-xl font-semibold">
+              {debouncedQuery && <>Results for "{debouncedQuery}"</>}
+              {!debouncedQuery && "Your playlists"}
+            </h3>
+          </div>
+          <div className="grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {searchResults?.tracks.map((track) => (
+              <MediaCard
+                key={track.id}
+                item={track}
+                onClick={() => setSelectedTrack(track)}
+              />
             ))}
-          {(isFetchingSearchResults || isFetchingPlaylists) &&
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((_, i) => (
-              <li key={i} className="h-64 w-48 space-y-2 border p-2">
-                <div className="h-44 w-full animate-pulse bg-gray-600" />
-                <div className="h-6 w-36 animate-pulse bg-gray-600 delay-100"></div>
-                <div className="h-3 w-32 animate-pulse bg-gray-600 delay-200"></div>
-              </li>
-            ))}
-          {!isFetchingSearchResults && debouncedQuery && !searchResults && (
-            <div className="col-span-full grid h-96 w-full place-content-center border border-dashed">
-              <p className="text-sm text-muted-foreground">No results found.</p>
-            </div>
-          )}
-        </ul>
+            {searchResults === undefined &&
+              !isFetchingSearchResults &&
+              playlists?.map((playlist) => (
+                <MediaCard key={playlist.id} item={playlist} />
+              ))}
+            {(isFetchingSearchResults || isFetchingPlaylists) &&
+              [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((_, i) => (
+                <li key={i} className="h-64 w-48 space-y-2 border p-2">
+                  <div className="h-44 w-full animate-pulse bg-gray-600" />
+                  <div className="h-6 w-36 animate-pulse bg-gray-600 delay-100"></div>
+                  <div className="h-3 w-32 animate-pulse bg-gray-600 delay-200"></div>
+                </li>
+              ))}
+            {!isFetchingSearchResults && debouncedQuery && !searchResults && (
+              <div className="col-span-full grid h-96 w-full place-content-center border border-dashed">
+                <p className="text-sm text-muted-foreground">
+                  No results found.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       {selectedTrack && (
         <CuePointSelector
