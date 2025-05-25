@@ -1,5 +1,6 @@
+import type { SimplifiedPlaylist } from "@spotify/web-api-ts-sdk";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { SimplifiedPlaylist, SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -42,7 +43,7 @@ export const spotifyRouter = {
       });
     }
 
-    let accessToken = spotifyAcccount.accessToken;
+    const accessToken = spotifyAcccount.accessToken;
 
     if (
       spotifyAcccount.accessTokenExpiresAt &&
@@ -57,7 +58,8 @@ export const spotifyRouter = {
       access_token: accessToken,
       refresh_token: spotifyAcccount.refreshToken,
       token_type: "Bearer",
-      expires: spotifyAcccount.accessTokenExpiresAt!.getTime(),
+      expires: spotifyAcccount.accessTokenExpiresAt?.getTime(),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       expires_in: null!,
       // expires_in: spotifyAcccount.accessTokenExpiresAt!.getTime() - Date.now(),
     });
@@ -84,6 +86,7 @@ export const spotifyRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      let result: "created" | "updated";
       // Check if the track already exists
       const existingTrack = await ctx.db.query.track.findFirst({
         where: and(
@@ -92,8 +95,9 @@ export const spotifyRouter = {
         ),
       });
       if (existingTrack) {
+        result = "updated";
         // Update the track
-        const result = await ctx.db
+        await ctx.db
           .update(track)
           .set({
             preferredStart: input.preferredStart,
@@ -107,12 +111,13 @@ export const spotifyRouter = {
           );
       } else {
         // Insert the track
-        const result = await ctx.db.insert(track).values({
+        result = "created";
+        await ctx.db.insert(track).values({
           ...input,
           userId: ctx.session.user.id,
         });
       }
 
-      return { success: true };
+      return { success: true, result };
     }),
 } satisfies TRPCRouterRecord;
