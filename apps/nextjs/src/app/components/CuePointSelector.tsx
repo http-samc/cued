@@ -28,7 +28,7 @@ interface CuePointSelectorProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const formatTime = (ms: number) => {
+export const formatTime = (ms: number) => {
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -209,7 +209,7 @@ const CuePointSelector = ({
           />
           <Button
             size="lg"
-            className="h-8"
+            className="h-7"
             disabled={isPending}
             onClick={() => {
               void insertTrack({
