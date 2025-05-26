@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSpotifyPlayerContext } from "./spotify-player-context";
@@ -35,11 +36,8 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
 
     document.body.appendChild(script);
 
-    window.onSpotifyWebPlaybackSDKReady = async () => {
-      console.log("Spotify SDK ready");
-      if (player) return;
-
-      console.log("No player found, creating new player");
+    const handleSpotifySDKReady = async () => {
+      console.log("Spotify SDK ready — Creating player");
 
       const newPlayer = new window.Spotify.Player({
         name: "Cued",
@@ -70,6 +68,9 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
         newPlayer.removeListener("player_state_changed", stateChangeListener);
       };
     };
+
+    // eslint-disable-next-line react-hooks/react-compiler
+    window.onSpotifyWebPlaybackSDKReady = () => void handleSpotifySDKReady();
   }, [accessToken, player, setPlayer, setPlayerState, setDeviceId]);
 
   useEffect(() => {

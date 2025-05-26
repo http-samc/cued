@@ -165,7 +165,7 @@ const CuePointSelector = ({
     formatTime,
   };
 
-  if (!accessToken || !deviceId) return null;
+  // if (!accessToken || !deviceId) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

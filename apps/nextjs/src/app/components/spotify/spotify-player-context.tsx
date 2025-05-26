@@ -1,13 +1,18 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useState } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useState } from "react";
+
+type PlaybackState = Spotify.PlaybackState & {
+  track_window: Spotify.PlaybackState["track_window"] | null;
+};
 
 interface SpotifyPlayerContextType {
   player: Spotify.Player | null;
-  playerState: Spotify.PlaybackState | null;
+  playerState: PlaybackState | null;
   deviceId: string | null;
   setPlayer: (player: Spotify.Player | null) => void;
-  setPlayerState: (state: Spotify.PlaybackState | null) => void;
+  setPlayerState: (state: PlaybackState | null) => void;
   setDeviceId: (id: string | null) => void;
 }
 
@@ -21,9 +26,7 @@ export const SpotifyPlayerProvider = ({
   children: ReactNode;
 }) => {
   const [player, setPlayer] = useState<Spotify.Player | null>(null);
-  const [playerState, setPlayerState] = useState<Spotify.PlaybackState | null>(
-    null,
-  );
+  const [playerState, setPlayerState] = useState<PlaybackState | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
   return (
