@@ -30,48 +30,96 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
     if (!accessToken || player) return;
     console.log("Initializing player");
 
+    const handleSpotifySDKReady = async () => {
+      console.log("Spotify SDK ready — Creating player");
+
+      try {
+        if (!window.Spotify) {
+          console.error("Spotify SDK not available");
+          return;
+        }
+
+        const newPlayer = new window.Spotify.Player({
+          name: "Cued",
+          getOAuthToken: (cb) => {
+            console.log("Getting OAuth token");
+            cb(accessToken);
+          },
+          volume: 0.5,
+        });
+
+        const readyListener = ({ device_id }: { device_id: string }) => {
+          console.log("Player ready — Setting device ID", device_id);
+          setDeviceId(device_id);
+          setIsPlayerReady(true);
+        };
+
+        const notReadyListener = ({ device_id }: { device_id: string }) => {
+          console.error("Player not ready", device_id);
+        };
+
+        const initializationErrorListener = (err: Spotify.Error) => {
+          console.error("Player initialization error:", err);
+        };
+
+        const stateChangeListener = (state: Spotify.PlaybackState) => {
+          console.log("Player state changed:", state);
+          setPlayerState(state);
+        };
+
+        newPlayer.addListener("ready", readyListener);
+        newPlayer.addListener("not_ready", notReadyListener);
+        newPlayer.addListener(
+          "initialization_error",
+          initializationErrorListener,
+        );
+        newPlayer.addListener("player_state_changed", stateChangeListener);
+
+        console.log("Connecting player");
+        const connected = await newPlayer.connect();
+        console.log("Player connection result:", connected);
+        setPlayer(newPlayer);
+
+        cleanupRef.current = () => {
+          newPlayer.removeListener("ready", readyListener);
+          newPlayer.removeListener("not_ready", notReadyListener);
+          newPlayer.removeListener(
+            "initialization_error",
+            initializationErrorListener,
+          );
+          newPlayer.removeListener("player_state_changed", stateChangeListener);
+        };
+      } catch (error) {
+        console.error("Error creating player:", error);
+      }
+    };
+
+    // Check if SDK is already loaded
+    if (window.Spotify) {
+      console.log("Spotify SDK already loaded");
+      void handleSpotifySDKReady();
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "https://sdk.scdn.co/spotify-player.js";
     script.async = true;
 
-    document.body.appendChild(script);
-
-    const handleSpotifySDKReady = async () => {
-      console.log("Spotify SDK ready — Creating player");
-
-      const newPlayer = new window.Spotify.Player({
-        name: "Cued",
-        getOAuthToken: (cb) => {
-          cb(accessToken);
-        },
-        volume: 0.5,
-      });
-
-      const readyListener = ({ device_id }: { device_id: string }) => {
-        console.log("Player ready — Setting device ID", device_id);
-        setDeviceId(device_id);
-        setIsPlayerReady(true);
-      };
-
-      const stateChangeListener = (state: Spotify.PlaybackState) => {
-        setPlayerState(state);
-      };
-
-      newPlayer.addListener("ready", readyListener);
-      newPlayer.addListener("player_state_changed", stateChangeListener);
-
-      console.log("Connecting player");
-      await newPlayer.connect();
-      setPlayer(newPlayer);
-
-      cleanupRef.current = () => {
-        newPlayer.removeListener("ready", readyListener);
-        newPlayer.removeListener("player_state_changed", stateChangeListener);
-      };
+    script.onerror = (error) => {
+      console.error("Failed to load Spotify SDK:", error);
     };
 
+    script.onload = () => {
+      console.log("Spotify SDK script loaded");
+    };
+
+    document.body.appendChild(script);
+
     // eslint-disable-next-line react-hooks/react-compiler
-    window.onSpotifyWebPlaybackSDKReady = () => void handleSpotifySDKReady();
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      console.log("SDK Ready callback triggered");
+      void handleSpotifySDKReady();
+    };
   }, [accessToken, player, setPlayer, setPlayerState, setDeviceId]);
 
   useEffect(() => {
