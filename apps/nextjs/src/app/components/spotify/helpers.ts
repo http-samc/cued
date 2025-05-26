@@ -3,8 +3,14 @@ export const playTrack = async (
   deviceId: string | null,
   spotifyUri: string,
   startMs = 0,
+  player: Spotify.Player | null,
 ) => {
-  if (!accessToken || !deviceId || !spotifyUri) return;
+  if (!accessToken || !deviceId || !spotifyUri || !player) {
+    console.error("Missing required parameters");
+    return;
+  }
+
+  // First, use the REST API to set the track
   await fetch(
     `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
     {
@@ -19,6 +25,8 @@ export const playTrack = async (
       }),
     },
   );
+
+  await player.resume();
 };
 
 export const pauseTrack = async (

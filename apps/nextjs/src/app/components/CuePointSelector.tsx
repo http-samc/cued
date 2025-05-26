@@ -44,7 +44,7 @@ const CuePointSelector = ({
   const { mutateAsync: insertTrack, isPending } = useMutation(
     trpc.spotify.insertTrack.mutationOptions(),
   );
-  const { deviceId, playerState } = useSpotifyPlayer(accessToken);
+  const { deviceId, playerState, player } = useSpotifyPlayer(accessToken);
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(track.duration_ms);
   const [currentPosition, setCurrentPosition] = useState(0);
@@ -64,9 +64,9 @@ const CuePointSelector = ({
 
   useEffect(() => {
     if (accessToken && deviceId) {
-      void playTrack(accessToken, deviceId, track.uri, 0);
+      void playTrack(accessToken, deviceId, track.uri, 0, player);
     }
-  }, [accessToken, deviceId, track.uri]);
+  }, [accessToken, deviceId, track.uri, player]);
 
   useEffect(() => {
     if (!playerState.isPlayingCorrectTrack) return;
@@ -103,11 +103,11 @@ const CuePointSelector = ({
   const handlePlayPause = useCallback(async () => {
     if (!accessToken || !deviceId) return;
     if (playerState.isPaused) {
-      await playTrack(accessToken, deviceId, track.uri, start);
+      await playTrack(accessToken, deviceId, track.uri, start, player);
     } else {
       await pauseTrack(accessToken, deviceId);
     }
-  }, [accessToken, deviceId, track.uri, playerState.isPaused, start]);
+  }, [accessToken, deviceId, track.uri, playerState.isPaused, start, player]);
 
   const handleSliderChange = useCallback(
     (values: [number, number]) => {
@@ -139,15 +139,21 @@ const CuePointSelector = ({
         ) {
           // Handle seeking based on which thumb was moved
           if (startThumbMoved) {
-            void playTrack(accessToken, deviceId, track.uri, newStart);
+            void playTrack(accessToken, deviceId, track.uri, newStart, player);
           } else if (endThumbMoved) {
             const seekPosition = Math.max(0, newEnd - 3000);
-            void playTrack(accessToken, deviceId, track.uri, seekPosition);
+            void playTrack(
+              accessToken,
+              deviceId,
+              track.uri,
+              seekPosition,
+              player,
+            );
           }
         }
       }, 100);
     },
-    [accessToken, deviceId, track.uri, start, end],
+    [accessToken, deviceId, track.uri, start, end, player],
   );
 
   // Cleanup timer on unmount
