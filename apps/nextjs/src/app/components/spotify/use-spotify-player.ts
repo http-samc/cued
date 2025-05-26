@@ -48,6 +48,7 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
       });
 
       const readyListener = ({ device_id }: { device_id: string }) => {
+        console.log("Player ready — Setting device ID", device_id);
         setDeviceId(device_id);
         setIsPlayerReady(true);
       };
