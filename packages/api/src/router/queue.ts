@@ -19,6 +19,13 @@ export const queueRouter = {
     if (!job) {
       return null;
     }
+
+    const isActive = await job.isActive();
+    if (!isActive) {
+      await job.remove();
+      return null;
+    }
+
     const timeElapsed = Date.now() - job.timestamp;
 
     return {
@@ -45,8 +52,11 @@ export const queueRouter = {
       );
       return { action: "created" };
     } else {
-      // await job.moveToCompleted();
-      // await job.remove();
+      const isActive = await job.isActive();
+      if (isActive) {
+        return { action: "already-active" };
+      }
+      await job.remove();
       return { action: "removed" };
     }
   }),
