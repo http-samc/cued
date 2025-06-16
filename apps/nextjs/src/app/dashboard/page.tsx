@@ -67,7 +67,7 @@ const DashboardPage = () => {
           <Input
             id="search"
             placeholder="e.g. Sweet Child O' Mine"
-            className="w-64 rounded-none sm:w-96 lg:w-[500px]"
+            className="w-64 rounded-none focus-visible:ring-primary sm:w-96 lg:w-[500px]"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
