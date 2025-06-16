@@ -108,14 +108,24 @@ const CuePointSelector = ({
   const handleSliderChange = useCallback(
     (values: [number, number]) => {
       const [newStart, newEnd] = values;
+      const startThumbMoved = newStart !== start;
+      const endThumbMoved = newEnd !== end;
+
       setStart(newStart);
       setEnd(newEnd);
-      setCurrentPosition(newStart);
+
+      let playPosition = newStart;
+      if (startThumbMoved) {
+        playPosition = newStart;
+      } else if (endThumbMoved) {
+        playPosition = Math.max(0, newEnd - 3000);
+      }
+      setCurrentPosition(playPosition);
       if (!isPaused && accessToken) {
-        void playTrack(accessToken, null, track.uri, newStart);
+        void playTrack(accessToken, null, track.uri, playPosition);
       }
     },
-    [accessToken, isPaused, track.uri],
+    [accessToken, isPaused, track.uri, start, end],
   );
 
   const controls = {
