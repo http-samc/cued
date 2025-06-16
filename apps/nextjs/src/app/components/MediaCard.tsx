@@ -16,7 +16,7 @@ const MediaCard = ({ item, onClick }: MediaCardProps) => {
 
   return (
     <button
-      className="flex h-64 w-48 flex-col justify-start space-y-2 border p-2 hover:scale-105"
+      className="flex h-64 w-48 flex-col justify-start space-y-2 border p-2 transition-all hover:border-primary sm:hover:scale-105"
       onClick={onClick}
     >
       {imageUrl && (

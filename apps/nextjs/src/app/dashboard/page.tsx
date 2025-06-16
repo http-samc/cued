@@ -67,7 +67,7 @@ const DashboardPage = () => {
           <Input
             id="search"
             placeholder="e.g. Sweet Child O' Mine"
-            className="rounded-none sm:w-96 lg:w-[500px]"
+            className="w-64 rounded-none sm:w-96 lg:w-[500px]"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -91,7 +91,7 @@ const DashboardPage = () => {
               {!debouncedQuery && selectedPlaylist?.name}
             </h3>
           </div>
-          <div className="mx-auto grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="mx-auto grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {searchResults?.tracks.map((track) => (
               <MediaCard
                 key={track.id}
