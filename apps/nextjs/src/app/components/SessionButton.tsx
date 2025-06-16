@@ -21,11 +21,11 @@ const SessionButton = () => {
   return (
     <Button
       onClick={() => void toggleSession().then(() => void refetch())}
-      disabled={isTogglingSession}
+      disabled={isTogglingSession || !!session}
       className="h-7 !text-xs"
     >
       {session
-        ? `End (${formatTime(session.timeRemaining).split(":")[0]}m left)`
+        ? `${formatTime(session.timeRemaining).split(":")[0]}m left`
         : "Start session"}
     </Button>
   );
