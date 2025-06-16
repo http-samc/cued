@@ -1,12 +1,12 @@
 "use client";
 
-import type { Track } from "@spotify/web-api-ts-sdk";
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { LucideArrowLeft } from "lucide-react";
 import { useDebounce } from "use-debounce";
 
+import type { RouterOutputs } from "@cued/api";
 import client from "@cued/auth/client";
 import { Input } from "@cued/ui/input";
 import { Label } from "@cued/ui/label";
@@ -24,7 +24,9 @@ const DashboardPage = () => {
     id: string;
     name: string;
   } | null>(null);
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<
+    RouterOutputs["spotify"]["search"]["tracks"][number] | null
+  >(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const getAccessToken = async () => {
@@ -35,6 +37,7 @@ const DashboardPage = () => {
       setAccessToken(data.accessToken);
     }
   };
+
   useEffect(() => {
     void getAccessToken();
   }, []);
@@ -69,12 +72,15 @@ const DashboardPage = () => {
             onChange={(e) => setQuery(e.target.value)}
           />
         </motion.div>
-        <div className="w-fit space-y-4 lg:w-full">
+        <div className="w-full max-w-sm space-y-4 lg:max-w-full">
           <div className="flex w-full items-center gap-2 border-b">
-            {selectedPlaylist && (
+            {(selectedPlaylist ?? debouncedQuery) && (
               <button
                 className="transition-transform hover:-translate-x-0.5"
-                onClick={() => setSelectedPlaylist(null)}
+                onClick={() => {
+                  setSelectedPlaylist(null);
+                  setQuery("");
+                }}
               >
                 <LucideArrowLeft size={16} />
               </button>
@@ -82,10 +88,10 @@ const DashboardPage = () => {
             <h3 className="text-xl font-semibold">
               {debouncedQuery && <>Results for "{debouncedQuery}"</>}
               {!debouncedQuery && !selectedPlaylist && "Your playlists"}
-              {selectedPlaylist?.name}
+              {!debouncedQuery && selectedPlaylist?.name}
             </h3>
           </div>
-          <div className="mx-auto grid w-fit gap-4 sm:grid-cols-2 md:grid-cols-3 lg:w-full lg:grid-cols-4">
+          <div className="mx-auto grid w-full gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {searchResults?.tracks.map((track) => (
               <MediaCard
                 key={track.id}

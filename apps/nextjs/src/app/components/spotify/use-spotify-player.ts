@@ -30,6 +30,12 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
     if (!accessToken || player) return;
     console.log("Initializing player");
 
+    // Check for browser compatibility
+    if (!window.MediaKeys) {
+      console.error("MediaKeys not supported in this browser");
+      return;
+    }
+
     const handleSpotifySDKReady = async () => {
       console.log("Spotify SDK ready — Creating player");
 
@@ -46,49 +52,65 @@ export const useSpotifyPlayer = (accessToken: string | null) => {
             cb(accessToken);
           },
           volume: 0.5,
+          enableMediaSession: true,
         });
 
-        const readyListener = ({ device_id }: { device_id: string }) => {
-          console.log("Player ready — Setting device ID", device_id);
-          setDeviceId(device_id);
-          setIsPlayerReady(true);
-        };
+        // Create a promise that resolves when the player is ready
+        const readyPromise = new Promise<void>((resolve) => {
+          const readyListener = ({ device_id }: { device_id: string }) => {
+            console.log("Player ready — Setting device ID", device_id);
+            setDeviceId(device_id);
+            setIsPlayerReady(true);
+            resolve();
+          };
 
-        const notReadyListener = ({ device_id }: { device_id: string }) => {
-          console.error("Player not ready", device_id);
-        };
+          const notReadyListener = ({ device_id }: { device_id: string }) => {
+            console.error("Player not ready", device_id);
+          };
 
-        const initializationErrorListener = (err: Spotify.Error) => {
-          console.error("Player initialization error:", err);
-        };
+          const initializationErrorListener = (err: Spotify.Error) => {
+            console.error("Player initialization error:", err);
+          };
 
-        const stateChangeListener = (state: Spotify.PlaybackState) => {
-          console.log("Player state changed:", state);
-          setPlayerState(state);
-        };
+          const stateChangeListener = (state: Spotify.PlaybackState) => {
+            console.log("Player state changed:", state);
+            setPlayerState(state);
+          };
 
-        newPlayer.addListener("ready", readyListener);
-        newPlayer.addListener("not_ready", notReadyListener);
-        newPlayer.addListener(
-          "initialization_error",
-          initializationErrorListener,
-        );
-        newPlayer.addListener("player_state_changed", stateChangeListener);
+          newPlayer.addListener("ready", readyListener);
+          newPlayer.addListener("not_ready", notReadyListener);
+          newPlayer.addListener(
+            "initialization_error",
+            initializationErrorListener,
+          );
+          newPlayer.addListener("player_state_changed", stateChangeListener);
+
+          cleanupRef.current = () => {
+            newPlayer.removeListener("ready", readyListener);
+            newPlayer.removeListener("not_ready", notReadyListener);
+            newPlayer.removeListener(
+              "initialization_error",
+              initializationErrorListener,
+            );
+            newPlayer.removeListener(
+              "player_state_changed",
+              stateChangeListener,
+            );
+          };
+        });
 
         console.log("Connecting player");
         const connected = await newPlayer.connect();
         console.log("Player connection result:", connected);
-        setPlayer(newPlayer);
 
-        cleanupRef.current = () => {
-          newPlayer.removeListener("ready", readyListener);
-          newPlayer.removeListener("not_ready", notReadyListener);
-          newPlayer.removeListener(
-            "initialization_error",
-            initializationErrorListener,
-          );
-          newPlayer.removeListener("player_state_changed", stateChangeListener);
-        };
+        if (connected) {
+          setPlayer(newPlayer);
+          // Wait for the player to be ready
+          await readyPromise;
+          console.log("Player is fully ready");
+        } else {
+          console.error("Failed to connect player");
+        }
       } catch (error) {
         console.error("Error creating player:", error);
       }

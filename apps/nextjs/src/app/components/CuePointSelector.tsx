@@ -1,9 +1,9 @@
 "use client";
 
-import type { Track } from "@spotify/web-api-ts-sdk";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
+import type { RouterOutputs } from "@cued/api";
 import { Slider } from "@cued/ui";
 import { Button } from "@cued/ui/button";
 import {
@@ -16,13 +16,13 @@ import {
 } from "@cued/ui/dialog";
 import { toast } from "@cued/ui/toast";
 
-import { useTRPC } from "~/trpc/react";
+import { getQueryClient, useTRPC } from "~/trpc/react";
 import { pauseTrack, playTrack } from "./spotify/helpers";
 import { PlayerControlsComponent } from "./spotify/player-controls";
 import { useSpotifyPlayer } from "./spotify/use-spotify-player";
 
 interface CuePointSelectorProps {
-  track: Track;
+  track: RouterOutputs["spotify"]["search"]["tracks"][number];
   accessToken: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,17 +41,27 @@ const CuePointSelector = ({
   onOpenChange: onOpenChangeProp,
 }: CuePointSelectorProps) => {
   const trpc = useTRPC();
+  const queryClient = getQueryClient();
+
   const { mutateAsync: insertTrack, isPending } = useMutation(
-    trpc.spotify.insertTrack.mutationOptions(),
+    trpc.spotify.insertTrack.mutationOptions({
+      onSuccess: () => {
+        console.log("Track Data Updated: Invalidating locally cached queries");
+        void queryClient.invalidateQueries().then(() => {
+          console.log("Queries invalidated");
+        });
+      },
+    }),
   );
   const { deviceId, playerState, player } = useSpotifyPlayer(accessToken);
-  const [start, setStart] = useState(0);
-  const [end, setEnd] = useState(track.duration_ms);
+  const [start, setStart] = useState(track.preferredStart ?? 0);
+  const [end, setEnd] = useState(track.preferredEnd ?? track.duration_ms);
   const [currentPosition, setCurrentPosition] = useState(0);
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastValuesRef = useRef<[number, number]>([0, track.duration_ms]);
   const positionUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const onOpenChange = useCallback(
     (open: boolean) => {
       onOpenChangeProp(open);
@@ -64,9 +74,15 @@ const CuePointSelector = ({
 
   useEffect(() => {
     if (accessToken && deviceId) {
-      void playTrack(accessToken, deviceId, track.uri, 0, player);
+      void playTrack(
+        accessToken,
+        deviceId,
+        track.uri,
+        track.preferredStart ?? 0,
+        player,
+      );
     }
-  }, [accessToken, deviceId, track.uri, player]);
+  }, [accessToken, deviceId, track.uri, player, track.preferredStart]);
 
   useEffect(() => {
     if (!playerState.isPlayingCorrectTrack) return;

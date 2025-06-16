@@ -6,11 +6,42 @@ import type {
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 
-import { and, eq } from "@cued/db";
+import { and, eq, inArray } from "@cued/db";
+import { db } from "@cued/db/client";
 import { track } from "@cued/db/schema";
 
 import { spotify, spotifyWithAccessToken } from "../lib/spotify";
 import { protectedProcedure } from "../trpc";
+
+const hydrateTracks = async (tracks: Track[], userId: string) => {
+  const userTracks = await db.query.track.findMany({
+    where: and(
+      eq(track.userId, userId),
+      inArray(
+        track.trackId,
+        tracks.map((t) => `spotify:track:${t.id}`),
+      ),
+    ),
+  });
+
+  // console.log(
+  //   userId,
+  //   tracks.map((t) => `spotify:track:${t.id}`),
+  //   userTracks.map((t) => t.trackId),
+  // );
+
+  return tracks.map((t) => {
+    const userTrack = userTracks.find(
+      (ut) => ut.trackId === `spotify:track:${t.id}`,
+    );
+
+    return {
+      ...t,
+      preferredStart: userTrack?.preferredStart,
+      preferredEnd: userTrack?.preferredEnd,
+    };
+  });
+};
 
 export const spotifyRouter = {
   search: protectedProcedure
@@ -19,15 +50,16 @@ export const spotifyRouter = {
         query: z.string(),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const results = await spotify.search(input.query, [
         "track",
         // "playlist",
         // "album",
       ]);
+
       return {
         // playlists: results.playlists.items,
-        tracks: results.tracks.items,
+        tracks: await hydrateTracks(results.tracks.items, ctx.session.user.id),
         // albums: results.albums.items,
       };
     }),
@@ -74,7 +106,11 @@ export const spotifyRouter = {
         i++;
       }
 
-      return tracks;
+      return await hydrateTracks(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        tracks.map((t) => t.track).filter((t) => t !== null),
+        ctx.session.user.id,
+      );
     }),
   insertTrack: protectedProcedure
     .input(
