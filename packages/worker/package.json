@@ -13,7 +13,7 @@
     "dev": "pnpm with-env tsx src/app.ts",
     "with-env": "dotenv -e ../../.env --",
     "test": "tsx src/lib/test.ts",
-    "start": "node dist/app.js",
+    "start": "pnpm tsx src/app.ts",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
