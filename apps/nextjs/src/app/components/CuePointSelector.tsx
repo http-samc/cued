@@ -231,7 +231,7 @@ const CuePointSelector = ({
           />
           <Button
             size="lg"
-            className="h-7"
+            className="h-7 w-32"
             disabled={isPending}
             onClick={() => {
               void insertTrack({
@@ -246,7 +246,15 @@ const CuePointSelector = ({
               });
             }}
           >
-            Save track
+            {isPending ? (
+              <span className="flex items-center gap-3">
+                <span className="h-2 w-2 animate-ping bg-black" />
+                <span className="h-2 w-2 animate-ping bg-black delay-150" />
+                <span className="h-2 w-2 animate-ping bg-black delay-300" />
+              </span>
+            ) : (
+              "Save track"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

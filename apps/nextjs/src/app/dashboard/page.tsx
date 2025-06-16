@@ -85,7 +85,7 @@ const DashboardPage = () => {
                 <LucideArrowLeft size={16} />
               </button>
             )}
-            <h3 className="text-xl font-semibold">
+            <h3 className="line-clamp-1 text-xl font-semibold">
               {debouncedQuery && <>Results for "{debouncedQuery}"</>}
               {!debouncedQuery && !selectedPlaylist && "Your playlists"}
               {!debouncedQuery && selectedPlaylist?.name}
