@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import type { RouterOutputs } from "@cued/api";
@@ -19,7 +19,6 @@ import { toast } from "@cued/ui/toast";
 import { getQueryClient, useTRPC } from "~/trpc/react";
 import { pauseTrack, playTrack } from "./spotify/helpers";
 import { PlayerControlsComponent } from "./spotify/player-controls";
-import { useSpotifyPlayer } from "./spotify/use-spotify-player";
 
 interface CuePointSelectorProps {
   track: RouterOutputs["spotify"]["search"]["tracks"][number];
@@ -53,133 +52,71 @@ const CuePointSelector = ({
       },
     }),
   );
-  const { deviceId, playerState, player } = useSpotifyPlayer(accessToken);
+  const [isPaused, setIsPaused] = useState(true);
+  const [currentPosition, setCurrentPosition] = useState(
+    track.preferredStart ?? 0,
+  );
   const [start, setStart] = useState(track.preferredStart ?? 0);
   const [end, setEnd] = useState(track.preferredEnd ?? track.duration_ms);
-  const [currentPosition, setCurrentPosition] = useState(0);
-  const lastUpdateTimeRef = useRef<number>(Date.now());
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastValuesRef = useRef<[number, number]>([0, track.duration_ms]);
-  const positionUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const onOpenChange = useCallback(
     (open: boolean) => {
       onOpenChangeProp(open);
       if (!open) {
-        void pauseTrack(accessToken, deviceId);
+        void pauseTrack(accessToken, null);
+        setIsPaused(true);
       }
     },
-    [onOpenChangeProp, accessToken, deviceId],
+    [onOpenChangeProp, accessToken],
   );
 
   useEffect(() => {
-    if (accessToken && deviceId) {
-      void playTrack(
-        accessToken,
-        deviceId,
-        track.uri,
-        track.preferredStart ?? 0,
-        player,
-      );
+    if (accessToken) {
+      void playTrack(accessToken, null, track.uri, start);
+      setIsPaused(false);
+      setCurrentPosition(start);
     }
-  }, [accessToken, deviceId, track.uri, player, track.preferredStart]);
+  }, [accessToken, track.uri, start]);
 
   useEffect(() => {
-    if (!playerState.isPlayingCorrectTrack) return;
-
-    // Update current position when playerState changes
-    setCurrentPosition(playerState.position);
-    lastUpdateTimeRef.current = Date.now();
-
-    // Clear any existing position update interval
-    if (positionUpdateIntervalRef.current) {
-      clearInterval(positionUpdateIntervalRef.current);
-    }
-
-    // If we're playing the correct track and not paused, start updating position
-    if (!playerState.isPaused) {
-      positionUpdateIntervalRef.current = setInterval(() => {
-        const elapsedMs = Date.now() - lastUpdateTimeRef.current;
-        setCurrentPosition((prev) => prev + elapsedMs);
-        lastUpdateTimeRef.current = Date.now();
-      }, 100);
-    }
-
-    return () => {
-      if (positionUpdateIntervalRef.current) {
-        clearInterval(positionUpdateIntervalRef.current);
-      }
-    };
-  }, [
-    playerState.isPlayingCorrectTrack,
-    playerState.isPaused,
-    playerState.position,
-  ]);
+    if (isPaused) return;
+    // Update current position every 100ms while playing
+    const interval = setInterval(() => {
+      setCurrentPosition((prev) => {
+        if (prev + 100 >= end) {
+          setIsPaused(true);
+          void pauseTrack(accessToken, null);
+          return end;
+        }
+        return prev + 100;
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isPaused, end, accessToken]);
 
   const handlePlayPause = useCallback(async () => {
-    if (!accessToken || !deviceId) return;
-    if (playerState.isPaused) {
-      await playTrack(accessToken, deviceId, track.uri, start, player);
+    if (!accessToken) return;
+    if (isPaused) {
+      await playTrack(accessToken, null, track.uri, currentPosition);
+      setIsPaused(false);
     } else {
-      await pauseTrack(accessToken, deviceId);
+      await pauseTrack(accessToken, null);
+      setIsPaused(true);
     }
-  }, [accessToken, deviceId, track.uri, playerState.isPaused, start, player]);
+  }, [accessToken, isPaused, track.uri, currentPosition]);
 
   const handleSliderChange = useCallback(
     (values: [number, number]) => {
       const [newStart, newEnd] = values;
-      const [oldStart, oldEnd] = [start, end];
-
-      // Determine which thumb was moved
-      const startThumbMoved = newStart !== oldStart;
-      const endThumbMoved = newEnd !== oldEnd;
-
-      // Update state first
       setStart(newStart);
       setEnd(newEnd);
-
-      // Store the current values
-      lastValuesRef.current = [newStart, newEnd];
-
-      // Clear any existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+      setCurrentPosition(newStart);
+      if (!isPaused && accessToken) {
+        void playTrack(accessToken, null, track.uri, newStart);
       }
-
-      // Set new timer
-      debounceTimerRef.current = setTimeout(() => {
-        // Only proceed if the values haven't changed since we started the timer
-        if (
-          lastValuesRef.current[0] === newStart &&
-          lastValuesRef.current[1] === newEnd
-        ) {
-          // Handle seeking based on which thumb was moved
-          if (startThumbMoved) {
-            void playTrack(accessToken, deviceId, track.uri, newStart, player);
-          } else if (endThumbMoved) {
-            const seekPosition = Math.max(0, newEnd - 3000);
-            void playTrack(
-              accessToken,
-              deviceId,
-              track.uri,
-              seekPosition,
-              player,
-            );
-          }
-        }
-      }, 100);
     },
-    [accessToken, deviceId, track.uri, start, end, player],
+    [accessToken, isPaused, track.uri],
   );
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
 
   const controls = {
     handlePlayPause,
@@ -207,28 +144,25 @@ const CuePointSelector = ({
               <Slider
                 value={[start, end]}
                 min={0}
-                max={playerState.duration || track.duration_ms}
+                max={track.duration_ms}
                 step={1000}
                 onValueChange={handleSliderChange}
                 className="w-full"
               />
-              {playerState.isPlayingCorrectTrack && (
+              {!isPaused && (
                 <div
                   className="absolute -top-3 -z-10 h-8 w-0.5 -translate-x-1/2 bg-red-500"
                   style={{
-                    left: `${(currentPosition / (playerState.duration || track.duration_ms)) * 100}%`,
+                    left: `${(currentPosition / track.duration_ms) * 100}%`,
                   }}
                 />
               )}
             </div>
-            <span>{formatTime(playerState.duration || track.duration_ms)}</span>
+            <span>{formatTime(track.duration_ms)}</span>
           </div>
         </div>
         <DialogFooter className="flex w-full items-center !justify-between">
-          <PlayerControlsComponent
-            controls={controls}
-            isPaused={playerState.isPaused}
-          />
+          <PlayerControlsComponent controls={controls} isPaused={isPaused} />
           <Button
             size="lg"
             className="h-7 w-32"
