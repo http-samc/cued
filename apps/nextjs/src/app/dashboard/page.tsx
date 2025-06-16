@@ -73,7 +73,7 @@ const DashboardPage = () => {
           />
         </motion.div>
         <div className="w-full max-w-sm space-y-4 lg:max-w-full">
-          <div className="flex w-full items-center gap-2 border-b">
+          <div className="sticky top-0 flex w-full items-center gap-2 border-b bg-background">
             {(selectedPlaylist ?? debouncedQuery) && (
               <button
                 className="transition-transform hover:-translate-x-0.5"
