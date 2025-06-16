@@ -1,5 +1,6 @@
 import React from "react";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import client from "@cued/auth/client";
@@ -20,7 +21,9 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen w-full flex-col">
       <div className="flex w-full items-center justify-between border-b px-4 py-2">
-        <h1 className="font-mono text-xl">Cued</h1>
+        <Link href="/" className="font-mono text-xl">
+          Cued
+        </Link>
         <div className="flex items-center gap-2">
           <SessionButton />
           <UserButton
