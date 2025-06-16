@@ -20,7 +20,8 @@ export default async function poll({
   const data = await sdk.player.getCurrentlyPlayingTrack();
 
   // If we're not playing anything, no further action is needed
-  if (!data.is_playing) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!data?.is_playing) {
     console.debug("Terminating poll: no currently playing track");
     return;
   }

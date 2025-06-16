@@ -52,10 +52,6 @@ export const queueRouter = {
       );
       return { action: "created" };
     } else {
-      const isActive = await job.isActive();
-      if (isActive) {
-        return { action: "already-active" };
-      }
       await job.remove();
       return { action: "removed" };
     }

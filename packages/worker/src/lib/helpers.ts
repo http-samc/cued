@@ -2,6 +2,7 @@
 import type { AccessToken, TrackItem } from "@spotify/web-api-ts-sdk";
 import { and, eq } from "drizzle-orm";
 
+import { env } from "@cued/auth/env";
 import { db } from "@cued/db/client";
 import { account, track } from "@cued/db/schema";
 
@@ -22,7 +23,11 @@ export const getResolvedTrackData = async (
   };
 };
 
-const _refreshAccessToken = async (clientId: string, refreshToken: string) => {
+export const refreshAccessToken = async (
+  clientId: string,
+  refreshToken: string,
+  accountId: string,
+) => {
   const params = new URLSearchParams();
   params.append("client_id", clientId);
   params.append("grant_type", "refresh_token");
@@ -40,8 +45,20 @@ const _refreshAccessToken = async (clientId: string, refreshToken: string) => {
     throw new Error(`Failed to refresh token: ${result.statusText}, ${text}`);
   }
 
-  const json = JSON.parse(text) as AccessToken;
-  return json;
+  const refreshedAccessToken = JSON.parse(text) as AccessToken;
+
+  // Update the database with the new access token and expiry
+  await db
+    .update(account)
+    .set({
+      accessToken: refreshedAccessToken.access_token,
+      accessTokenExpiresAt: new Date(
+        Date.now() + refreshedAccessToken.expires_in * 1000,
+      ),
+    })
+    .where(eq(account.id, accountId));
+
+  return refreshedAccessToken;
 };
 
 export const getAccessToken = async (userId: string): Promise<AccessToken> => {
@@ -53,30 +70,20 @@ export const getAccessToken = async (userId: string): Promise<AccessToken> => {
     throw new Error("No Spotify account found for user");
   }
 
-  // let accessToken = spotifyAccount.accessToken;
+  let accessToken = spotifyAccount.accessToken;
 
-  // if (spotifyAccount.accessTokenExpiresAt!.getTime() < Date.now()) {
-  //   console.log("Refreshing access token");
-  //   const refreshedAccessToken = await refreshAccessToken(
-  //     env.SPOTIFY_CLIENT_ID,
-  //     spotifyAccount.refreshToken,
-  //   );
+  if (spotifyAccount.accessTokenExpiresAt!.getTime() < Date.now()) {
+    const refreshedAccessToken = await refreshAccessToken(
+      env.SPOTIFY_CLIENT_ID,
+      spotifyAccount.refreshToken,
+      spotifyAccount.id,
+    );
 
-  //   await db
-  //     .update(account)
-  //     .set({
-  //       accessToken: refreshedAccessToken.access_token,
-  //       accessTokenExpiresAt: new Date(
-  //         Date.now() + refreshedAccessToken.expires_in * 1000,
-  //       ),
-  //     })
-  //     .where(eq(account.id, spotifyAccount.id));
-
-  //   accessToken = refreshedAccessToken.access_token;
-  // }
+    accessToken = refreshedAccessToken.access_token;
+  }
 
   return {
-    access_token: spotifyAccount.accessToken,
+    access_token: accessToken,
     token_type: "Bearer",
     expires_in: spotifyAccount.accessTokenExpiresAt!.getTime() - Date.now(),
     refresh_token: spotifyAccount.refreshToken,
