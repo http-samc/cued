@@ -44,7 +44,7 @@ export const queueRouter = {
         {
           userId,
           pollInterval: 1000 * 5, // 5 seconds
-          runs: 12 * 60, // 1 hour worth of runs
+          runs: 12 * 60 * 2, // 2 hours worth of runs
         },
         {
           jobId: userId,
